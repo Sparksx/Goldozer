@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const RESOURCE_COUNT = 120;
+const RESOURCE_COUNT = 500;
 const BASE_COLLECT_RADIUS = 4;
 
 export function spawnResources(scene, collectedIds = []) {

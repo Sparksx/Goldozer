@@ -6,6 +6,7 @@ let isMobile = false;
 let onStartGame = null;
 let onResumeGame = null;
 let gameState = null;
+let getGameState = null;
 let controls = null;
 
 export function initUI(options) {
@@ -14,6 +15,7 @@ export function initUI(options) {
   onStartGame = options.onStartGame;
   onResumeGame = options.onResumeGame;
   gameState = options.gameState;
+  getGameState = options.getGameState || null;
   controls = options.controls;
 
   createHUD();
@@ -159,6 +161,7 @@ export function showPauseMenu() {
 // ─── Upgrade Menu ────────────────────────────────
 export function showUpgradeMenu() {
   hideAllOverlays();
+  const currentState = getGameState ? getGameState() : gameState;
   const overlay = createOverlay('upgrade-menu');
   const title = document.createElement('h1');
   title.textContent = `🔧 ${t('upgrades')}`;
@@ -167,7 +170,7 @@ export function showUpgradeMenu() {
 
   const moneyInfo = document.createElement('div');
   moneyInfo.className = 'upgrade-money';
-  moneyInfo.textContent = `💰 ${gameState.money}`;
+  moneyInfo.textContent = `💰 ${currentState.money}`;
   overlay.appendChild(moneyInfo);
 
   const defs = getUpgradeDefs();
@@ -175,7 +178,7 @@ export function showUpgradeMenu() {
 
   upgradeKeys.forEach(key => {
     const def = defs[key];
-    const level = gameState.upgrades[key];
+    const level = currentState.upgrades[key];
     const cost = getUpgradeCost(key, level);
     const isMax = level >= def.maxLevel;
 
@@ -197,11 +200,11 @@ export function showUpgradeMenu() {
       btn.disabled = true;
     } else {
       btn.textContent = `${t('buy')} (${cost} 💰)`;
-      btn.disabled = gameState.money < cost;
+      btn.disabled = currentState.money < cost;
       btn.addEventListener('click', () => {
-        if (buyUpgrade(gameState, key)) {
+        if (buyUpgrade(currentState, key)) {
           showUpgradeMenu(); // Refresh
-          updateHUD(gameState);
+          updateHUD(currentState);
         }
       });
     }
@@ -327,7 +330,7 @@ function showCredits() {
   });
 }
 
-// ─── Mobile Joystick ─────────────────────────────
+// ─── Mobile Joystick (Dynamic) ───────────────────
 function createJoystick() {
   const container = document.createElement('div');
   container.id = 'joystick-container';
@@ -336,33 +339,52 @@ function createJoystick() {
       <div id="joystick-handle"></div>
     </div>
   `;
+  container.classList.add('hidden');
   document.body.appendChild(container);
 
   const base = document.getElementById('joystick-base');
   const handle = document.getElementById('joystick-handle');
   const maxDist = 40;
   let touching = false;
+  let touchId = null;
   let startX = 0, startY = 0;
 
-  function getPos(e) {
-    const touch = e.touches ? e.touches[0] : e;
-    return { x: touch.clientX, y: touch.clientY };
-  }
+  // Listen on the whole screen for touch start - joystick appears where finger lands
+  document.addEventListener('touchstart', (e) => {
+    if (touching) return;
+    // Ignore touches on UI elements (buttons, overlays)
+    const target = e.target;
+    if (target.closest('.overlay') || target.closest('#mobile-buttons') || target.closest('.menu-btn') || target.closest('.mobile-btn')) return;
 
-  base.addEventListener('touchstart', (e) => {
-    e.preventDefault();
+    const touch = e.touches[e.touches.length - 1];
+    touchId = touch.identifier;
     touching = true;
-    const pos = getPos(e);
-    const rect = base.getBoundingClientRect();
-    startX = rect.left + rect.width / 2;
-    startY = rect.top + rect.height / 2;
+    startX = touch.clientX;
+    startY = touch.clientY;
+
+    // Position joystick where finger touched
+    container.style.left = `${startX - 60}px`;
+    container.style.top = `${startY - 60}px`;
+    container.classList.remove('hidden');
+    handle.style.transform = 'translate(0, 0)';
+
+    e.preventDefault();
   }, { passive: false });
 
-  window.addEventListener('touchmove', (e) => {
+  document.addEventListener('touchmove', (e) => {
     if (!touching) return;
-    const pos = getPos(e);
-    let dx = pos.x - startX;
-    let dy = pos.y - startY;
+    // Find the right touch by identifier
+    let touch = null;
+    for (let i = 0; i < e.touches.length; i++) {
+      if (e.touches[i].identifier === touchId) {
+        touch = e.touches[i];
+        break;
+      }
+    }
+    if (!touch) return;
+
+    let dx = touch.clientX - startX;
+    let dy = touch.clientY - startY;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist > maxDist) {
       dx = (dx / dist) * maxDist;
@@ -370,16 +392,32 @@ function createJoystick() {
     }
     handle.style.transform = `translate(${dx}px, ${dy}px)`;
     controls?.setFromJoystick(dx / maxDist, dy / maxDist);
+    e.preventDefault();
   }, { passive: false });
 
-  function endTouch() {
+  function endTouch(e) {
+    if (!touching) return;
+    // Check if our specific touch ended
+    let found = false;
+    if (e.changedTouches) {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === touchId) {
+          found = true;
+          break;
+        }
+      }
+    }
+    if (!found && e.changedTouches) return;
+
     touching = false;
+    touchId = null;
     handle.style.transform = 'translate(0, 0)';
+    container.classList.add('hidden');
     controls?.resetJoystick();
   }
 
-  window.addEventListener('touchend', endTouch);
-  window.addEventListener('touchcancel', endTouch);
+  window.addEventListener('touchend', endTouch, { passive: false });
+  window.addEventListener('touchcancel', endTouch, { passive: false });
 }
 
 // ─── Mobile Buttons ──────────────────────────────

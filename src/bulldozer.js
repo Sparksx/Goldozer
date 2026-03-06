@@ -133,7 +133,7 @@ export function updateBulldozer(bulldozer, input, delta, upgrades, mapSize) {
 }
 
 export function updateCamera(camera, bulldozer) {
-  const offset = new THREE.Vector3(0, 8, -14);
+  const offset = new THREE.Vector3(0, 14, -22);
   offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), bulldozer.rotation);
 
   const targetPos = new THREE.Vector3(
@@ -145,7 +145,7 @@ export function updateCamera(camera, bulldozer) {
   camera.position.lerp(targetPos, 0.05);
   camera.lookAt(
     bulldozer.mesh.position.x,
-    bulldozer.mesh.position.y + 2,
+    bulldozer.mesh.position.y + 1,
     bulldozer.mesh.position.z
   );
 }

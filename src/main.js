@@ -53,6 +53,7 @@ initUI({
     gameRunning = true;
   },
   gameState: state,
+  getGameState: () => state,
   controls,
 });
 
