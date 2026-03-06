@@ -7,6 +7,12 @@ export function createControls() {
     action: false, // E key or sell button
     upgrade: false, // U key
     menu: false, // Escape key
+    // Analog joystick values (0-1 range)
+    analogForward: 0,
+    analogBackward: 0,
+    analogLeft: 0,
+    analogRight: 0,
+    isAnalog: false, // true when using joystick
   };
 
   // Keyboard controls
@@ -76,17 +82,28 @@ export function createControls() {
     setFromJoystick(dx, dy) {
       // dy negative = forward, positive = backward
       // dx negative = left, positive = right
-      const deadzone = 0.2;
+      const deadzone = 0.15;
+      state.isAnalog = true;
       state.forward = dy < -deadzone;
       state.backward = dy > deadzone;
       state.left = dx < -deadzone;
       state.right = dx > deadzone;
+      // Store analog intensity (0-1) for smooth mobile control
+      state.analogForward = dy < -deadzone ? Math.min((-dy - deadzone) / (1 - deadzone), 1) : 0;
+      state.analogBackward = dy > deadzone ? Math.min((dy - deadzone) / (1 - deadzone), 1) : 0;
+      state.analogLeft = dx < -deadzone ? Math.min((-dx - deadzone) / (1 - deadzone), 1) : 0;
+      state.analogRight = dx > deadzone ? Math.min((dx - deadzone) / (1 - deadzone), 1) : 0;
     },
     resetJoystick() {
       state.forward = false;
       state.backward = false;
       state.left = false;
       state.right = false;
+      state.isAnalog = false;
+      state.analogForward = 0;
+      state.analogBackward = 0;
+      state.analogLeft = 0;
+      state.analogRight = 0;
     },
   };
 }
