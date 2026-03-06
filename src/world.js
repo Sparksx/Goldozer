@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { getResourceMountains } from './resources.js';
 
 const MAP_SIZE = 200;
 const SELL_POINTS = [
@@ -17,22 +18,53 @@ export function getSellPoints() {
   return SELL_POINTS;
 }
 
+let groundMesh = null;
+let groundRaycaster = null;
+
+export function getTerrainHeight(x, z) {
+  if (!groundMesh || !groundRaycaster) return 0;
+  groundRaycaster.set(
+    new THREE.Vector3(x, 50, z),
+    new THREE.Vector3(0, -1, 0)
+  );
+  const hits = groundRaycaster.intersectObject(groundMesh);
+  if (hits.length > 0) {
+    return hits[0].point.y;
+  }
+  return 0;
+}
+
 export function createWorld(scene) {
-  // Ground plane
-  const groundGeo = new THREE.PlaneGeometry(MAP_SIZE * 2, MAP_SIZE * 2, 32, 32);
+  // Ground plane (higher subdivision for smoother terrain)
+  const groundGeo = new THREE.PlaneGeometry(MAP_SIZE * 2, MAP_SIZE * 2, 64, 64);
   const groundMat = new THREE.MeshLambertMaterial({ color: 0x5a8f3c });
   const ground = new THREE.Mesh(groundGeo, groundMat);
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   scene.add(ground);
 
+  groundMesh = ground;
+  groundRaycaster = new THREE.Raycaster();
+
   // Add some terrain variation (low poly hills)
   const vertices = groundGeo.attributes.position;
   const seed = 42;
+  const mountains = getResourceMountains();
   for (let i = 0; i < vertices.count; i++) {
     const x = vertices.getX(i);
     const y = vertices.getY(i);
-    const noise = seededNoise(x * 0.05, y * 0.05, seed) * 1.5;
+    let noise = seededNoise(x * 0.05, y * 0.05, seed) * 1.5;
+    // Add gentle mounds at resource mountain locations
+    // Ground plane is rotated -PI/2, so plane X,Y = world X,Z
+    for (const mt of mountains) {
+      const dx = x - mt.x;
+      const dy = y - mt.z;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 30) {
+        const falloff = 1 - dist / 30;
+        noise += falloff * falloff * 3;
+      }
+    }
     vertices.setZ(i, noise);
   }
   groundGeo.computeVertexNormals();

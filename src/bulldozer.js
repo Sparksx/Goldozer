@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { getTerrainHeight } from './world.js';
 
 export function createBulldozer(scene) {
   const group = new THREE.Group();
@@ -90,11 +91,14 @@ export function updateBulldozer(bulldozer, input, delta, upgrades, mapSize) {
   const deceleration = 15;
   const turnSpeed = 2.0;
 
-  // Forward/backward
+  // Forward/backward (analog-aware for mobile)
+  const accelFactor = input.isAnalog ? (input.forward ? input.analogForward : input.analogBackward) : 1;
   if (input.forward) {
-    bulldozer.velocity = Math.min(bulldozer.velocity + acceleration * delta, maxSpeed);
+    const targetSpeed = maxSpeed * (input.isAnalog ? input.analogForward : 1);
+    bulldozer.velocity = Math.min(bulldozer.velocity + acceleration * accelFactor * delta, targetSpeed);
   } else if (input.backward) {
-    bulldozer.velocity = Math.max(bulldozer.velocity - acceleration * delta, -maxSpeed * 0.5);
+    const targetSpeed = maxSpeed * 0.5 * (input.isAnalog ? input.analogBackward : 1);
+    bulldozer.velocity = Math.max(bulldozer.velocity - acceleration * accelFactor * delta, -targetSpeed);
   } else {
     // Decelerate
     if (bulldozer.velocity > 0) {
@@ -104,14 +108,16 @@ export function updateBulldozer(bulldozer, input, delta, upgrades, mapSize) {
     }
   }
 
-  // Turning (only when moving)
+  // Turning (only when moving), with analog smoothing for mobile
   if (Math.abs(bulldozer.velocity) > 0.5) {
     const turnFactor = Math.sign(bulldozer.velocity);
     if (input.left) {
-      bulldozer.rotation += turnSpeed * delta * turnFactor;
+      const turnIntensity = input.isAnalog ? input.analogLeft : 1;
+      bulldozer.rotation += turnSpeed * delta * turnFactor * turnIntensity;
     }
     if (input.right) {
-      bulldozer.rotation -= turnSpeed * delta * turnFactor;
+      const turnIntensity = input.isAnalog ? input.analogRight : 1;
+      bulldozer.rotation -= turnSpeed * delta * turnFactor * turnIntensity;
     }
   }
 
@@ -129,11 +135,17 @@ export function updateBulldozer(bulldozer, input, delta, upgrades, mapSize) {
 
   bulldozer.mesh.position.x = newX;
   bulldozer.mesh.position.z = newZ;
+
+  // Keep bulldozer on top of terrain
+  const terrainY = getTerrainHeight(newX, newZ);
+  bulldozer.mesh.position.y = terrainY;
+
   bulldozer.mesh.rotation.y = bulldozer.rotation;
 }
 
 export function updateCamera(camera, bulldozer) {
-  const offset = new THREE.Vector3(0, 14, -22);
+  // Camera behind and above (like a balloon on a string)
+  const offset = new THREE.Vector3(0, 12, -18);
   offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), bulldozer.rotation);
 
   const targetPos = new THREE.Vector3(
@@ -142,10 +154,16 @@ export function updateCamera(camera, bulldozer) {
     bulldozer.mesh.position.z + offset.z
   );
 
-  camera.position.lerp(targetPos, 0.05);
+  // Smooth follow with slight lag (balloon on string feel)
+  camera.position.lerp(targetPos, 0.04);
+
+  // Look ahead of the bulldozer so player can see what's coming
+  const lookAhead = new THREE.Vector3(0, 0, 8);
+  lookAhead.applyAxisAngle(new THREE.Vector3(0, 1, 0), bulldozer.rotation);
+
   camera.lookAt(
-    bulldozer.mesh.position.x,
-    bulldozer.mesh.position.y + 1,
-    bulldozer.mesh.position.z
+    bulldozer.mesh.position.x + lookAhead.x,
+    bulldozer.mesh.position.y + 2,
+    bulldozer.mesh.position.z + lookAhead.z
   );
 }
