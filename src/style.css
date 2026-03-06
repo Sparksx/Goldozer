@@ -195,10 +195,12 @@ html, body {
 /* ─── Joystick ──────────────────────────────────── */
 #joystick-container {
   position: fixed;
-  bottom: 40px;
-  left: 40px;
   z-index: 20;
-  pointer-events: auto;
+  pointer-events: none;
+}
+
+#joystick-container.hidden {
+  display: none;
 }
 
 #joystick-base {
@@ -211,6 +213,7 @@ html, body {
   align-items: center;
   justify-content: center;
   touch-action: none;
+  pointer-events: none;
 }
 
 #joystick-handle {
@@ -218,7 +221,6 @@ html, body {
   height: 50px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.5);
-  transition: transform 0.05s ease;
   pointer-events: none;
 }
 
