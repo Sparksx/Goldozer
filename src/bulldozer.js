@@ -6,7 +6,7 @@ export function createBulldozer(scene) {
 
   // Main body
   const bodyGeo = new THREE.BoxGeometry(2.5, 1.2, 4);
-  const bodyMat = new THREE.MeshLambertMaterial({ color: 0xE8A317 });
+  const bodyMat = new THREE.MeshLambertMaterial({ color: 0xf5b731 });
   const body = new THREE.Mesh(bodyGeo, bodyMat);
   body.position.y = 1.2;
   body.castShadow = true;
@@ -14,7 +14,7 @@ export function createBulldozer(scene) {
 
   // Cabin
   const cabinGeo = new THREE.BoxGeometry(2, 1.4, 2);
-  const cabinMat = new THREE.MeshLambertMaterial({ color: 0xF5C518 });
+  const cabinMat = new THREE.MeshLambertMaterial({ color: 0xfcd34d });
   const cabin = new THREE.Mesh(cabinGeo, cabinMat);
   cabin.position.set(0, 2.5, -0.3);
   cabin.castShadow = true;

@@ -4,8 +4,6 @@ import { getResourceMountains } from './resources.js';
 const MAP_SIZE = 200;
 const SELL_POINTS = [
   { x: 60, z: 60, name: 'Depot Nord-Est' },
-  { x: -60, z: 60, name: 'Depot Nord-Ouest' },
-  { x: 60, z: -60, name: 'Depot Sud-Est' },
   { x: -60, z: -60, name: 'Depot Sud-Ouest' },
   { x: 0, z: -80, name: 'Depot Sud' },
 ];
@@ -37,7 +35,7 @@ export function getTerrainHeight(x, z) {
 export function createWorld(scene) {
   // Ground plane (higher subdivision for smoother terrain)
   const groundGeo = new THREE.PlaneGeometry(MAP_SIZE * 2, MAP_SIZE * 2, 64, 64);
-  const groundMat = new THREE.MeshLambertMaterial({ color: 0x5a8f3c });
+  const groundMat = new THREE.MeshLambertMaterial({ color: 0x7ec860 });
   const ground = new THREE.Mesh(groundGeo, groundMat);
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
@@ -75,7 +73,7 @@ export function createWorld(scene) {
     const pz = seededRandom(seed + i * 100 + 50) * MAP_SIZE * 1.4 - MAP_SIZE * 0.7;
     const size = 10 + seededRandom(seed + i * 100 + 25) * 15;
     const patchGeo = new THREE.CircleGeometry(size, 6);
-    const patchMat = new THREE.MeshLambertMaterial({ color: 0x8B7355 });
+    const patchMat = new THREE.MeshLambertMaterial({ color: 0xc9a96e });
     const patch = new THREE.Mesh(patchGeo, patchMat);
     patch.rotation.x = -Math.PI / 2;
     patch.position.set(px, 0.02, pz);
@@ -110,11 +108,11 @@ export function createWorld(scene) {
   // Map border fences
   createBorders(scene);
 
-  // Lighting
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+  // Lighting (warm golden hour feel)
+  const ambientLight = new THREE.AmbientLight(0xfff5e6, 0.65);
   scene.add(ambientLight);
 
-  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+  const dirLight = new THREE.DirectionalLight(0xfff0d0, 0.9);
   dirLight.position.set(50, 80, 30);
   dirLight.castShadow = true;
   dirLight.shadow.mapSize.width = 1024;
@@ -127,9 +125,9 @@ export function createWorld(scene) {
   dirLight.shadow.camera.bottom = -100;
   scene.add(dirLight);
 
-  // Sky color
-  scene.background = new THREE.Color(0x87CEEB);
-  scene.fog = new THREE.Fog(0x87CEEB, 120, 250);
+  // Sky color (warm bright blue)
+  scene.background = new THREE.Color(0x8dd8f8);
+  scene.fog = new THREE.Fog(0x8dd8f8, 130, 260);
 
   return { sellPointMeshes };
 }
@@ -147,7 +145,7 @@ function createTree(scene, x, z, seed) {
 
   // Foliage (stacked cones)
   const scale = 0.8 + seededRandom(seed + 999) * 0.6;
-  const colors = [0x2d8a4e, 0x3da55d, 0x228B22, 0x1a7a3a];
+  const colors = [0x3dba6e, 0x5cc87a, 0x2ea854, 0x45d68a];
   const color = colors[Math.floor(seededRandom(seed + 888) * colors.length)];
 
   const foliageGeo1 = new THREE.ConeGeometry(2.5 * scale, 3, 6);
@@ -187,44 +185,44 @@ function createRock(scene, x, z, seed) {
 function createSellPoint(scene, x, z) {
   const group = new THREE.Group();
 
-  // Building base
-  const baseGeo = new THREE.BoxGeometry(6, 4, 6);
-  const baseMat = new THREE.MeshLambertMaterial({ color: 0xD2691E });
+  // Building base (warm wood color)
+  const baseGeo = new THREE.BoxGeometry(5, 3.5, 5);
+  const baseMat = new THREE.MeshLambertMaterial({ color: 0xe8b87a });
   const base = new THREE.Mesh(baseGeo, baseMat);
-  base.position.y = 2;
+  base.position.y = 1.75;
   base.castShadow = true;
   group.add(base);
 
-  // Roof
-  const roofGeo = new THREE.ConeGeometry(5, 2.5, 4);
-  const roofMat = new THREE.MeshLambertMaterial({ color: 0x8B0000 });
+  // Roof (cheerful terracotta)
+  const roofGeo = new THREE.ConeGeometry(4.5, 2, 4);
+  const roofMat = new THREE.MeshLambertMaterial({ color: 0xe07050 });
   const roof = new THREE.Mesh(roofGeo, roofMat);
-  roof.position.y = 5.25;
+  roof.position.y = 4.5;
   roof.rotation.y = Math.PI / 4;
   roof.castShadow = true;
   group.add(roof);
 
   // Sign pole
-  const poleGeo = new THREE.CylinderGeometry(0.15, 0.15, 3, 6);
-  const poleMat = new THREE.MeshLambertMaterial({ color: 0x444444 });
+  const poleGeo = new THREE.CylinderGeometry(0.12, 0.12, 2.5, 6);
+  const poleMat = new THREE.MeshLambertMaterial({ color: 0x666666 });
   const pole = new THREE.Mesh(poleGeo, poleMat);
-  pole.position.set(4, 1.5, 0);
+  pole.position.set(3.5, 1.25, 0);
   group.add(pole);
 
   // Dollar sign (golden sphere on top)
-  const signGeo = new THREE.SphereGeometry(0.6, 6, 4);
-  const signMat = new THREE.MeshLambertMaterial({ color: 0xFFD700 });
+  const signGeo = new THREE.SphereGeometry(0.5, 6, 4);
+  const signMat = new THREE.MeshLambertMaterial({ color: 0xffd55a });
   const sign = new THREE.Mesh(signGeo, signMat);
-  sign.position.set(4, 3.5, 0);
+  sign.position.set(3.5, 3, 0);
   group.add(sign);
 
-  // Glow ring around sell point
-  const ringGeo = new THREE.RingGeometry(7, 7.5, 16);
+  // Soft glow ring around sell point
+  const ringGeo = new THREE.RingGeometry(6.5, 7, 20);
   const ringMat = new THREE.MeshBasicMaterial({
-    color: 0xFFD700,
+    color: 0xfde68a,
     side: THREE.DoubleSide,
     transparent: true,
-    opacity: 0.5,
+    opacity: 0.35,
   });
   const ring = new THREE.Mesh(ringGeo, ringMat);
   ring.rotation.x = -Math.PI / 2;
@@ -237,7 +235,7 @@ function createSellPoint(scene, x, z) {
 }
 
 function createBorders(scene) {
-  const borderMat = new THREE.MeshLambertMaterial({ color: 0x654321 });
+  const borderMat = new THREE.MeshLambertMaterial({ color: 0xa07850 });
   const half = MAP_SIZE;
   const height = 3;
   const thickness = 1;
