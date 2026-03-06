@@ -56,7 +56,7 @@ export function updateHUD(state) {
 
   const pct = maxCap > 0 ? (state.bucket / maxCap) * 100 : 0;
   barEl.style.width = `${pct}%`;
-  barEl.style.backgroundColor = pct >= 100 ? '#e74c3c' : pct >= 70 ? '#f39c12' : '#2ecc71';
+  barEl.style.backgroundColor = pct >= 100 ? '#f87171' : pct >= 70 ? '#fbbf24' : '#6ee7a0';
 }
 
 export function showSellPrompt(show) {

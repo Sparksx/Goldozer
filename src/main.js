@@ -151,13 +151,12 @@ function animate() {
   // Update camera
   updateCamera(camera, bulldozer);
 
-  // Check resource collection
-  const collected = checkCollection(resources, bulldozer.mesh.position, state.upgrades, scene);
+  // Check resource collection (only collect up to available bucket space)
+  const maxCap = getMaxCapacity(state.upgrades);
+  const canAdd = maxCap - state.bucket;
+  const collected = checkCollection(resources, bulldozer.mesh.position, state.upgrades, scene, canAdd);
   if (collected.length > 0) {
-    const maxCap = getMaxCapacity(state.upgrades);
-    const canAdd = maxCap - state.bucket;
-    const toAdd = Math.min(collected.length, canAdd);
-    addToBucket(state, toAdd);
+    addToBucket(state, collected.length);
     state.collectedIds.push(...collected);
     updateHUD(state);
     persistState(state);

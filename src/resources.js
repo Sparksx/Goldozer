@@ -34,7 +34,7 @@ export function spawnResources(scene, collectedIds = []) {
     if (Math.abs(x) < 8 && Math.abs(z) < 8) continue;
 
     const isSand = seededRandom(seed + i * 37 + 99) > 0.4;
-    const color = isSand ? 0xD2B48C : 0x8B6914;
+    const color = isSand ? 0xe0c88a : 0xb8860b;
 
     const size = 0.4 + seededRandom(seed + i * 37 + 55) * 0.4;
     const geo = isSand
@@ -67,7 +67,7 @@ export function spawnResources(scene, collectedIds = []) {
       // Mountains have richer resources (more dirt/gold colored)
       const typeRoll = seededRandom(seed + mi * 1000 + j * 53 + 99);
       const isSand = typeRoll > 0.3;
-      const color = isSand ? 0xD2B48C : 0x8B6914;
+      const color = isSand ? 0xe0c88a : 0xb8860b;
 
       // Slightly bigger resources in mountains
       const size = 0.5 + seededRandom(seed + mi * 1000 + j * 53 + 55) * 0.5;
@@ -88,11 +88,13 @@ export function spawnResources(scene, collectedIds = []) {
   return resources;
 }
 
-export function checkCollection(resources, bulldozerPos, upgrades, scene) {
+export function checkCollection(resources, bulldozerPos, upgrades, scene, maxCollect = Infinity) {
   const collectRadius = BASE_COLLECT_RADIUS + upgrades.collectRadius * 1.5;
   const collected = [];
 
   for (let i = resources.length - 1; i >= 0; i--) {
+    if (collected.length >= maxCollect) break;
+
     const res = resources[i];
     if (res.collected) continue;
 
