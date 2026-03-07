@@ -2,6 +2,8 @@
 // Handles bulldozer vs obstacles (trees, rocks, buildings)
 // and bulldozer vs resources (push when bucket full)
 
+import { getTerrainHeight } from './world.js'
+
 const BULLDOZER_RADIUS = 2.5
 
 // ─── Obstacle Collision ─────────────────────────
@@ -76,6 +78,11 @@ export function pushResources(resources, bulldozerPos, bulldozerRotation, bulldo
 
       res.mesh.position.x += (pushDirX + spreadX) * speed * delta
       res.mesh.position.z += (pushDirZ + spreadZ) * speed * delta
+
+      // Recalculate elevation for new position
+      const terrainY = getTerrainHeight(res.mesh.position.x, res.mesh.position.z)
+      const nuggetSize = res.mesh.geometry?.parameters?.radius || 0.8
+      res.mesh.position.y = terrainY + nuggetSize * 0.9
 
       // Roll effect: rotate the nugget
       res.mesh.rotation.x += delta * speed * 2

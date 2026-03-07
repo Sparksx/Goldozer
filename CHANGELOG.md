@@ -3,6 +3,12 @@
 Toutes les modifications notables du projet sont documentées ici.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [0.6.1] - 2026-03-07
+
+### Corrigé
+- Les pepites poussees recalculent leur elevation (ne volent plus / ne s'enfoncent plus dans le sol)
+- Les routes suivent l'elevation du terrain (ne disparaissent plus sous le sol)
+
 ## [0.6.0] - 2026-03-07
 
 ### Ajouté
