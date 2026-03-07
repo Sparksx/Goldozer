@@ -4,19 +4,20 @@ import { createBulldozer, updateBulldozer, updateCamera } from './bulldozer.js'
 import { spawnResources, checkCollection, spawnVeinResources, updateVeinRespawn } from './resources.js'
 import {
   createGameState, sellResources, addToBucket,
-  getMaxCapacity, persistState, getTotalInBucket
+  getMaxCapacity, persistState, getTotalInBucket,
+  getSpeedLevel, getCollectRadiusLevel
 } from './economy.js'
 import { createControls } from './controls.js'
 import { loadGame } from './save.js'
 import {
-  initUI, showMainMenu, showPauseMenu, showUpgradeMenu,
+  initUI, showMainMenu, showPauseMenu,
   updateHUD, showSellPrompt, showMobileSellButton,
   showDeliveryPrompt, showMobileDeliverButton, showNotification,
   hideAllOverlays, isOverlayOpen, isMobileDevice
 } from './ui.js'
-import { createZonesState, clampToAccessibleZone, removeObstacle } from './zones.js'
+import { createZonesState, clampToAccessibleZone, removeObstacle, refreshChantierMarker } from './zones.js'
 import { resolveObstacleCollisions, pushResources } from './collision.js'
-import { createBuildingsState, upgradePlotToBuilding, getBuildingById } from './buildings.js'
+import { createBuildingsState, upgradePlotToBuilding, getBuildingById, refreshBuildingMarker } from './buildings.js'
 import { checkDeliveryProximity, canDeliverTo, performDelivery } from './delivery.js'
 import { t } from './i18n.js'
 
@@ -145,16 +146,8 @@ function animate() {
     }
   }
 
-  // Handle upgrade toggle
-  if (controls.consumeUpgrade()) {
-    if (isOverlayOpen()) {
-      hideAllOverlays()
-      gameRunning = true
-    } else {
-      gameRunning = false
-      showUpgradeMenu()
-    }
-  }
+  // Consume upgrade key (no longer opens menu, just ignore)
+  controls.consumeUpgrade()
 
   if (!gameRunning || !bulldozer) {
     renderer.render(scene, camera)
@@ -165,8 +158,9 @@ function animate() {
   prevBulldozerX = bulldozer.mesh.position.x
   prevBulldozerZ = bulldozer.mesh.position.z
 
-  // Update bulldozer
-  updateBulldozer(bulldozer, controls.state, delta, state.upgrades, getMapSize())
+  // Update bulldozer (speed bonus from buildings)
+  const speedBonus = getSpeedLevel()
+  updateBulldozer(bulldozer, controls.state, delta, speedBonus, getMapSize())
 
   // Clamp to accessible zones (prevent crossing barriers)
   const clamped = clampToAccessibleZone(
@@ -187,17 +181,19 @@ function animate() {
   // Update camera
   updateCamera(camera, bulldozer)
 
-  // Check resource collection (only collect up to available bucket space)
-  const maxCap = getMaxCapacity(state.upgrades)
+  // Check resource collection (collect radius bonus from buildings)
+  const maxCap = getMaxCapacity()
   const total = getTotalInBucket(state.bucket)
   const canAdd = maxCap - total
+
 
   // Push resources when bucket is full
   if (canAdd <= 0) {
     pushResources(resources, bulldozer.mesh.position, bulldozer.rotation, bulldozer.velocity, delta)
   }
 
-  const collected = checkCollection(resources, bulldozer.mesh.position, state.upgrades, scene, canAdd)
+  const collectRadiusBonus = getCollectRadiusLevel()
+  const collected = checkCollection(resources, bulldozer.mesh.position, collectRadiusBonus, scene, canAdd)
   if (collected.length > 0) {
     for (const item of collected) {
       addToBucket(state, item.type, 1)
@@ -261,11 +257,21 @@ function animate() {
         if (result.justCompleted) {
           if (deliveryTarget.type === 'obstacle') {
             removeObstacle(scene, deliveryTarget.zoneId)
+            refreshChantierMarker(scene, deliveryTarget.zoneId)
             showNotification(t('zoneUnlocked'), 4000)
           } else if (deliveryTarget.type === 'building') {
             upgradePlotToBuilding(scene, deliveryTarget.buildingId)
             const effectKey = `${deliveryTarget.name}Effect`
-            showNotification(`${t(deliveryTarget.name)} — ${t(effectKey)}`, 4000)
+            const building = getBuildingById(deliveryTarget.buildingId)
+            const levelInfo = building ? ` (Niv.${building.level})` : ''
+            showNotification(`${t(deliveryTarget.name)}${levelInfo} — ${t(effectKey)}`, 4000)
+          }
+        } else {
+          // Partial delivery: refresh the marker to show updated progress
+          if (deliveryTarget.type === 'building') {
+            refreshBuildingMarker(scene, deliveryTarget.buildingId)
+          } else if (deliveryTarget.type === 'obstacle') {
+            refreshChantierMarker(scene, deliveryTarget.zoneId)
           }
         }
       }
@@ -273,7 +279,7 @@ function animate() {
       const earnings = sellResources(state)
       if (earnings > 0) {
         updateHUD(state)
-        showNotification(`+${earnings} 💰`, 2000)
+        showNotification(`+${earnings} $`, 2000)
       }
     }
   }

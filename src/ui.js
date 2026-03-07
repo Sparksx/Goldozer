@@ -1,5 +1,5 @@
 import { t, setLanguage, getLanguage, getAvailableLanguages } from './i18n.js'
-import { getUpgradeDefs, getUpgradeCost, getMaxCapacity, buyUpgrade, getPricePerUnit, getTotalInBucket } from './economy.js'
+import { getMaxCapacity, getPricePerUnit, getTotalInBucket } from './economy.js'
 import { hasSave, deleteSave } from './save.js'
 import { VERSION } from './version.js'
 
@@ -35,8 +35,8 @@ function createHUD() {
   const hud = document.createElement('div')
   hud.id = 'hud'
   hud.innerHTML = `
-    <div id="hud-money">💰 0</div>
-    <div id="hud-bucket-resources">📦 0/10</div>
+    <div id="hud-money">$ 0</div>
+    <div id="hud-bucket-resources">0/10</div>
     <div id="hud-bucket-bar-container">
       <div id="hud-bucket-bar"></div>
     </div>
@@ -53,16 +53,16 @@ export function updateHUD(state) {
   const barEl = document.getElementById('hud-bucket-bar')
   if (!moneyEl) return
 
-  const maxCap = getMaxCapacity(state.upgrades)
+  const maxCap = getMaxCapacity()
   const total = getTotalInBucket(state.bucket)
-  moneyEl.textContent = `💰 ${state.money}`
+  moneyEl.textContent = `$ ${state.money}`
 
   // Multi-resource display
-  let resourceText = `📦 ${total}/${maxCap}`
+  let resourceText = `${total}/${maxCap}`
   const parts = []
-  if (state.bucket.terre > 0) parts.push(`🟤${state.bucket.terre}`)
-  if (state.bucket.pierre > 0) parts.push(`🪨${state.bucket.pierre}`)
-  if (state.bucket.bois > 0) parts.push(`🪵${state.bucket.bois}`)
+  if (state.bucket.terre > 0) parts.push(`T:${state.bucket.terre}`)
+  if (state.bucket.pierre > 0) parts.push(`P:${state.bucket.pierre}`)
+  if (state.bucket.bois > 0) parts.push(`B:${state.bucket.bois}`)
   if (parts.length > 0) {
     resourceText += ` (${parts.join(' ')})`
   }
@@ -99,7 +99,8 @@ export function showDeliveryPrompt(show, target = null) {
           parts.push(`${t(res)}: ${current}/${needed}`)
         }
       }
-      text = `${isMobile ? t('deliverPromptMobile') : t('deliverPrompt')} — ${t(target.name)} — ${parts.join(', ')}`
+      const levelInfo = target.level !== undefined ? ` (Niv.${target.level}>${target.level + 1})` : ''
+      text = `${isMobile ? t('deliverPromptMobile') : t('deliverPrompt')} — ${t(target.name)}${levelInfo} — ${parts.join(', ')}`
     }
     el.textContent = text
     el.classList.remove('hidden')
@@ -125,7 +126,7 @@ export function showMainMenu() {
   hideAllOverlays()
   const overlay = createOverlay('main-menu')
   const title = document.createElement('h1')
-  title.textContent = '🚜 GoldoZer'
+  title.textContent = 'GoldoZer'
   title.className = 'menu-title'
   overlay.appendChild(title)
 
@@ -133,35 +134,30 @@ export function showMainMenu() {
   btnContainer.className = 'menu-buttons'
 
   if (hasSave()) {
-    addMenuButton(btnContainer, `▶️ ${t('continue')}`, () => {
+    addMenuButton(btnContainer, t('continue'), () => {
       hideAllOverlays()
       onResumeGame?.()
     })
   }
 
-  addMenuButton(btnContainer, `🆕 ${t('newGame')}`, () => {
+  addMenuButton(btnContainer, t('newGame'), () => {
     hideAllOverlays()
     onStartGame?.(true)
   })
 
-  addMenuButton(btnContainer, `🔧 ${t('upgrades')}`, () => {
-    if (!hasSave()) return
-    showUpgradeMenu()
-  })
-
-  addMenuButton(btnContainer, `🔊 ${t('sound')}`, () => {
+  addMenuButton(btnContainer, t('sound'), () => {
     showSoundMenu()
   })
 
-  addMenuButton(btnContainer, `🌐 ${t('language')}`, () => {
+  addMenuButton(btnContainer, t('language'), () => {
     showLanguageMenu()
   })
 
-  addMenuButton(btnContainer, `🗑️ ${t('reset')}`, () => {
+  addMenuButton(btnContainer, t('reset'), () => {
     showResetConfirm()
   })
 
-  addMenuButton(btnContainer, `ℹ️ ${t('credits')}`, () => {
+  addMenuButton(btnContainer, t('credits'), () => {
     showCredits()
   })
 
@@ -173,100 +169,35 @@ export function showPauseMenu() {
   hideAllOverlays()
   const overlay = createOverlay('pause-menu')
   const title = document.createElement('h1')
-  title.textContent = `⏸️ ${t('pauseTitle')}`
+  title.textContent = t('pauseTitle')
   title.className = 'menu-title'
   overlay.appendChild(title)
 
   const btnContainer = document.createElement('div')
   btnContainer.className = 'menu-buttons'
 
-  addMenuButton(btnContainer, `▶️ ${t('resume')}`, () => {
+  addMenuButton(btnContainer, t('resume'), () => {
     hideAllOverlays()
     onResumeGame?.()
   })
 
-  addMenuButton(btnContainer, `🔧 ${t('upgrades')}`, () => {
-    showUpgradeMenu()
-  })
-
-  addMenuButton(btnContainer, `🔊 ${t('sound')}`, () => {
+  addMenuButton(btnContainer, t('sound'), () => {
     showSoundMenu()
   })
 
-  addMenuButton(btnContainer, `🌐 ${t('language')}`, () => {
+  addMenuButton(btnContainer, t('language'), () => {
     showLanguageMenu()
   })
 
-  addMenuButton(btnContainer, `🗑️ ${t('reset')}`, () => {
+  addMenuButton(btnContainer, t('reset'), () => {
     showResetConfirm()
   })
 
-  addMenuButton(btnContainer, `ℹ️ ${t('credits')}`, () => {
+  addMenuButton(btnContainer, t('credits'), () => {
     showCredits()
   })
 
   overlay.appendChild(btnContainer)
-}
-
-// ─── Upgrade Menu ────────────────────────────────
-export function showUpgradeMenu() {
-  hideAllOverlays()
-  const currentState = getGameState ? getGameState() : gameState
-  const overlay = createOverlay('upgrade-menu')
-  const title = document.createElement('h1')
-  title.textContent = `🔧 ${t('upgrades')}`
-  title.className = 'menu-title'
-  overlay.appendChild(title)
-
-  const moneyInfo = document.createElement('div')
-  moneyInfo.className = 'upgrade-money'
-  moneyInfo.textContent = `💰 ${currentState.money}`
-  overlay.appendChild(moneyInfo)
-
-  const defs = getUpgradeDefs()
-  const upgradeKeys = ['speed', 'capacity', 'power', 'collectRadius']
-
-  upgradeKeys.forEach(key => {
-    const def = defs[key]
-    const level = currentState.upgrades[key]
-    const cost = getUpgradeCost(key, level)
-    const isMax = level >= def.maxLevel
-
-    const row = document.createElement('div')
-    row.className = 'upgrade-row'
-
-    const info = document.createElement('div')
-    info.className = 'upgrade-info'
-    info.innerHTML = `
-      <strong>${t(key)}</strong><br>
-      ${t('level')} ${level}/${def.maxLevel}
-    `
-    row.appendChild(info)
-
-    const btn = document.createElement('button')
-    btn.className = 'menu-btn upgrade-btn'
-    if (isMax) {
-      btn.textContent = t('max')
-      btn.disabled = true
-    } else {
-      btn.textContent = `${t('buy')} (${cost} 💰)`
-      btn.disabled = currentState.money < cost
-      btn.addEventListener('click', () => {
-        if (buyUpgrade(currentState, key)) {
-          showUpgradeMenu() // Refresh
-          updateHUD(currentState)
-        }
-      })
-    }
-    row.appendChild(btn)
-    overlay.appendChild(row)
-  })
-
-  addMenuButton(overlay, `⬅️ ${t('back')}`, () => {
-    hideAllOverlays()
-    if (onResumeGame) showPauseMenu()
-    else showMainMenu()
-  })
 }
 
 // ─── Sound Menu ──────────────────────────────────
@@ -277,7 +208,7 @@ function showSoundMenu() {
   hideAllOverlays()
   const overlay = createOverlay('sound-menu')
   const title = document.createElement('h1')
-  title.textContent = `🔊 ${t('sound')}`
+  title.textContent = t('sound')
   title.className = 'menu-title'
   overlay.appendChild(title)
 
@@ -294,7 +225,7 @@ function showSoundMenu() {
     showSoundMenu()
   })
 
-  addMenuButton(btnContainer, `⬅️ ${t('back')}`, () => {
+  addMenuButton(btnContainer, t('back'), () => {
     showPauseMenu()
   })
 
@@ -306,7 +237,7 @@ function showLanguageMenu() {
   hideAllOverlays()
   const overlay = createOverlay('lang-menu')
   const title = document.createElement('h1')
-  title.textContent = `🌐 ${t('language')}`
+  title.textContent = t('language')
   title.className = 'menu-title'
   overlay.appendChild(title)
 
@@ -314,18 +245,18 @@ function showLanguageMenu() {
   btnContainer.className = 'menu-buttons'
 
   const langs = getAvailableLanguages()
-  const labels = { fr: '🇫🇷 Français', en: '🇬🇧 English' }
+  const labels = { fr: 'Francais', en: 'English' }
 
   langs.forEach(lang => {
     const label = labels[lang] || lang
-    const current = getLanguage() === lang ? ' ✓' : ''
+    const current = getLanguage() === lang ? ' *' : ''
     addMenuButton(btnContainer, `${label}${current}`, () => {
       setLanguage(lang)
       showLanguageMenu()
     })
   })
 
-  addMenuButton(btnContainer, `⬅️ ${t('back')}`, () => {
+  addMenuButton(btnContainer, t('back'), () => {
     showPauseMenu()
   })
 
@@ -337,7 +268,7 @@ function showResetConfirm() {
   hideAllOverlays()
   const overlay = createOverlay('reset-confirm')
   const title = document.createElement('h1')
-  title.textContent = `⚠️ ${t('reset')}`
+  title.textContent = t('reset')
   title.className = 'menu-title'
   overlay.appendChild(title)
 
@@ -349,12 +280,12 @@ function showResetConfirm() {
   const btnContainer = document.createElement('div')
   btnContainer.className = 'menu-buttons'
 
-  addMenuButton(btnContainer, `✅ ${t('yes')}`, () => {
+  addMenuButton(btnContainer, t('yes'), () => {
     deleteSave()
     window.location.reload()
   })
 
-  addMenuButton(btnContainer, `❌ ${t('no')}`, () => {
+  addMenuButton(btnContainer, t('no'), () => {
     showPauseMenu()
   })
 
@@ -366,7 +297,7 @@ function showCredits() {
   hideAllOverlays()
   const overlay = createOverlay('credits')
   const title = document.createElement('h1')
-  title.textContent = `ℹ️ ${t('credits')}`
+  title.textContent = t('credits')
   title.className = 'menu-title'
   overlay.appendChild(title)
 
@@ -380,11 +311,11 @@ function showCredits() {
   text.className = 'credits-text'
   overlay.appendChild(text)
 
-  addMenuButton(overlay, `📋 ${t('changelog')}`, () => {
+  addMenuButton(overlay, t('changelog'), () => {
     showChangelog()
   })
 
-  addMenuButton(overlay, `⬅️ ${t('back')}`, () => {
+  addMenuButton(overlay, t('back'), () => {
     showPauseMenu()
   })
 }
@@ -394,7 +325,7 @@ function showChangelog() {
   hideAllOverlays()
   const overlay = createOverlay('changelog')
   const title = document.createElement('h1')
-  title.textContent = `📋 ${t('changelog')}`
+  title.textContent = t('changelog')
   title.className = 'menu-title'
   overlay.appendChild(title)
 
@@ -403,7 +334,7 @@ function showChangelog() {
   content.innerHTML = getChangelogHTML()
   overlay.appendChild(content)
 
-  addMenuButton(overlay, `⬅️ ${t('back')}`, () => {
+  addMenuButton(overlay, t('back'), () => {
     showCredits()
   })
 }
@@ -411,62 +342,45 @@ function showChangelog() {
 function getChangelogHTML() {
   return `
     <div class="changelog-entry">
+      <h3>v0.6.0 <span class="changelog-date">2026-03-07</span></h3>
+      <ul>
+        <li>Ameliorations par batiments (plus de menu)</li>
+        <li>Entrepot=capacite, Station=vitesse, Marche=prix, Equipement=rayon</li>
+        <li>Batiments multi-niveaux (5 max, cout croissant)</li>
+        <li>Concession agrandie avec parking et showroom</li>
+        <li>Station-service avec pompes multiples</li>
+        <li>Artere principale large traversant la ville</li>
+        <li>Fix: pins mis a jour apres livraison</li>
+        <li>Fix: pancartes de zone disparaissent</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
       <h3>v0.5.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
-        <li>Collisions : le bulldozer rebondit sur les arbres, rochers et bâtiments</li>
-        <li>Godet plein : les pépites sont poussées au lieu d'être ramassées</li>
-        <li>Les pépites poussées roulent visuellement</li>
+        <li>Collisions avec arbres, rochers et batiments</li>
+        <li>Poussee des pepites quand le godet est plein</li>
       </ul>
     </div>
     <div class="changelog-entry">
       <h3>v0.4.2 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
-        <li>Fix critique : terrain inversé (zones, montagnes, couleurs au mauvais endroit)</li>
-        <li>Fix raycaster : hauteur terrain réelle pour arbres, ressources, bâtiments</li>
-      </ul>
-    </div>
-    <div class="changelog-entry">
-      <h3>v0.4.1 <span class="changelog-date">2026-03-07</span></h3>
-      <ul>
-        <li>Terrain lisse (vrai bruit fBm multi-octaves au lieu de hash random)</li>
-        <li>Montagnes et collines plus douces et naturelles</li>
-        <li>Pépites de ressources plus grosses et mieux placées au-dessus du sol</li>
+        <li>Fix critique : terrain inverse</li>
+        <li>Fix raycaster : hauteur terrain reelle</li>
       </ul>
     </div>
     <div class="changelog-entry">
       <h3>v0.4.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
-        <li>Carte agrandie, zones 2 et 3 beaucoup plus grandes</li>
-        <li>Zone ville centrale avec routes et bâtiments organisés</li>
-        <li>Ressources redessinées en pépites colorées lumineuses</li>
-        <li>Filons de ressources avec respawn automatique</li>
-        <li>4 nouveaux bâtiments WIP : Concession, Fonderie, Station-service, Laboratoire</li>
-        <li>Corrections : ressources flottantes, rivière enterrée, arbres dans le sol</li>
+        <li>Carte agrandie, zones 2 et 3 plus grandes</li>
+        <li>Zone ville centrale avec routes et batiments</li>
+        <li>Ressources en pepites colorees lumineuses</li>
+        <li>Filons avec respawn automatique</li>
       </ul>
     </div>
     <div class="changelog-entry">
       <h3>v0.3.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
-        <li>Système de changelog et versioning</li>
-        <li>Affichage version et changelog dans le jeu</li>
-      </ul>
-    </div>
-    <div class="changelog-entry">
-      <h3>v0.2.0</h3>
-      <ul>
-        <li>Livraison de ressources et bâtiments</li>
-        <li>Zones multiples avec déblocage</li>
-        <li>Ressources : terre, pierre, bois</li>
-        <li>Internationalisation FR/EN</li>
-        <li>Sauvegarde LocalStorage</li>
-      </ul>
-    </div>
-    <div class="changelog-entry">
-      <h3>v0.1.0</h3>
-      <ul>
-        <li>Bulldozer 3D, monde procédural</li>
-        <li>Collecte, vente, améliorations</li>
-        <li>Support mobile</li>
+        <li>Systeme de changelog et versioning</li>
       </ul>
     </div>
   `
@@ -566,7 +480,7 @@ function createMobileButtons() {
   const sellBtn = document.createElement('button')
   sellBtn.id = 'mobile-sell-btn'
   sellBtn.className = 'mobile-btn hidden'
-  sellBtn.textContent = `💰 ${t('sell')}`
+  sellBtn.textContent = `$ ${t('sell')}`
   sellBtn.addEventListener('touchstart', (e) => {
     e.preventDefault()
     controls.state.action = true
@@ -577,7 +491,7 @@ function createMobileButtons() {
   const deliverBtn = document.createElement('button')
   deliverBtn.id = 'mobile-deliver-btn'
   deliverBtn.className = 'mobile-btn hidden'
-  deliverBtn.textContent = `📦 ${t('deliverPromptMobile')}`
+  deliverBtn.textContent = t('deliverPromptMobile')
   deliverBtn.addEventListener('touchstart', (e) => {
     e.preventDefault()
     controls.state.action = true
@@ -588,23 +502,12 @@ function createMobileButtons() {
   const menuBtn = document.createElement('button')
   menuBtn.id = 'mobile-menu-btn'
   menuBtn.className = 'mobile-btn'
-  menuBtn.textContent = `☰`
+  menuBtn.textContent = '='
   menuBtn.addEventListener('touchstart', (e) => {
     e.preventDefault()
     controls.state.menu = true
   })
   container.appendChild(menuBtn)
-
-  // Upgrade button
-  const upgradeBtn = document.createElement('button')
-  upgradeBtn.id = 'mobile-upgrade-btn'
-  upgradeBtn.className = 'mobile-btn'
-  upgradeBtn.textContent = `🔧`
-  upgradeBtn.addEventListener('touchstart', (e) => {
-    e.preventDefault()
-    controls.state.upgrade = true
-  })
-  container.appendChild(upgradeBtn)
 
   document.body.appendChild(container)
 }

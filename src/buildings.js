@@ -4,78 +4,65 @@ import { t } from './i18n.js'
 import { getResourceTypes } from './resources.js'
 
 // ─── Building Definitions ───────────────────────────
-// Buildings organized in city center around origin
+// Buildings along the main road (x=0 axis), placed on left/right sides
+// Main road goes north (positive z) toward zones 2/3
 
 const BUILDING_DEFS = [
-  // Functional buildings
-  {
-    id: 'maison',
-    name: 'maison',
-    zone: 1,
-    position: { x: 25, z: -20 },
-    cost: { terre: 10 },
-    effect: { type: 'sellBonus', resource: 'terre', bonus: 0.05 },
-  },
+  // === Functional buildings (upgrade via construction) ===
   {
     id: 'entrepot',
     name: 'entrepot',
     zone: 1,
-    position: { x: -25, z: -20 },
+    position: { x: -22, z: -15 },
     cost: { terre: 15, pierre: 10 },
-    effect: { type: 'capacityBonus', bonus: 10 },
-  },
-  {
-    id: 'marche',
-    name: 'marche',
-    zone: 1,
-    position: { x: 25, z: 18 },
-    cost: { pierre: 20 },
-    effect: { type: 'dynamicPrices' },
-  },
-  {
-    id: 'scierie',
-    name: 'scierie',
-    zone: 1,
-    position: { x: -25, z: 18 },
-    cost: { bois: 10, pierre: 10 },
-    effect: { type: 'transformBonus', resource: 'bois', multiplier: 1.5 },
-  },
-  // WIP buildings
-  {
-    id: 'concession',
-    name: 'concession',
-    zone: 1,
-    position: { x: 40, z: 0 },
-    cost: { terre: 30, pierre: 20, bois: 15 },
-    effect: { type: 'wip' },
-    wip: true,
-  },
-  {
-    id: 'fonderie',
-    name: 'fonderie',
-    zone: 1,
-    position: { x: -40, z: 0 },
-    cost: { pierre: 30, terre: 20 },
-    effect: { type: 'wip' },
-    wip: true,
+    effect: { type: 'capacityBonus', bonus: 5 },
+    maxLevel: 5,
+    costScale: 1.6,
+    size: { w: 10, d: 8 },
   },
   {
     id: 'stationService',
     name: 'stationService',
     zone: 1,
-    position: { x: 0, z: 38 },
+    position: { x: 22, z: -15 },
     cost: { terre: 20, bois: 15 },
-    effect: { type: 'wip' },
-    wip: true,
+    effect: { type: 'speedBonus', bonus: 1 },
+    maxLevel: 5,
+    costScale: 1.7,
+    size: { w: 14, d: 10 },
   },
   {
-    id: 'laboratoire',
-    name: 'laboratoire',
+    id: 'marche',
+    name: 'marche',
     zone: 1,
-    position: { x: 0, z: -42 },
-    cost: { pierre: 25, bois: 20 },
+    position: { x: -22, z: 15 },
+    cost: { pierre: 20 },
+    effect: { type: 'sellBonus', bonus: 0.1 },
+    maxLevel: 5,
+    costScale: 1.8,
+    size: { w: 8, d: 8 },
+  },
+  {
+    id: 'magasinEquipement',
+    name: 'magasinEquipement',
+    zone: 1,
+    position: { x: 22, z: 15 },
+    cost: { bois: 10, pierre: 10 },
+    effect: { type: 'collectRadiusBonus', bonus: 1.5 },
+    maxLevel: 5,
+    costScale: 1.6,
+    size: { w: 8, d: 7 },
+  },
+  // === Concession (large, WIP for future vehicles) ===
+  {
+    id: 'concession',
+    name: 'concession',
+    zone: 1,
+    position: { x: -30, z: 40 },
+    cost: { terre: 30, pierre: 20, bois: 15 },
     effect: { type: 'wip' },
     wip: true,
+    size: { w: 18, d: 14 },
   },
 ]
 
@@ -90,14 +77,27 @@ export function createBuildingsState(saved = null) {
       name: def.name,
       zone: def.zone,
       position: { ...def.position },
-      cost: { ...def.cost },
+      baseCost: { ...def.cost },
+      cost: scaleCost(def.cost, savedBuilding?.level || 0, def.costScale || 1.6),
       effect: { ...def.effect },
       wip: def.wip || false,
+      maxLevel: def.maxLevel || 1,
+      costScale: def.costScale || 1.6,
       delivered: savedBuilding?.delivered || {},
       built: savedBuilding?.built || false,
+      level: savedBuilding?.level || 0,
+      size: def.size || { w: 8, d: 8 },
     }
   })
   return buildingsState
+}
+
+function scaleCost(baseCost, level, scale) {
+  const result = {}
+  for (const [res, amount] of Object.entries(baseCost)) {
+    result[res] = Math.floor(amount * Math.pow(scale, level))
+  }
+  return result
 }
 
 export function getBuildingsState() {
@@ -110,8 +110,10 @@ export function getBuildingById(id) {
 
 export function deliverToBuilding(buildingId, resourceType, amount) {
   const building = getBuildingById(buildingId)
-  if (!building || building.built) return 0
+  if (!building) return 0
   if (building.wip) return 0
+  // For multi-level buildings, check if at max level
+  if (building.level >= building.maxLevel && building.built) return 0
 
   const required = building.cost[resourceType]
   if (!required) return 0
@@ -130,7 +132,11 @@ export function deliverToBuilding(buildingId, resourceType, amount) {
     }
   }
   if (allDone) {
+    building.level++
     building.built = true
+    // Reset delivered for next level and recalculate cost
+    building.delivered = {}
+    building.cost = scaleCost(building.baseCost, building.level, building.costScale)
   }
 
   return toDeliver
@@ -143,6 +149,8 @@ export function getBuildingProgress(buildingId) {
     cost: building.cost,
     delivered: building.delivered,
     built: building.built,
+    level: building.level,
+    maxLevel: building.maxLevel,
   }
 }
 
@@ -152,21 +160,19 @@ export function getBuildingSaveData() {
     id: b.id,
     delivered: { ...b.delivered },
     built: b.built,
+    level: b.level,
   }))
 }
 
-// ─── Building Effects ───────────────────────────────
+// ─── Building Effects (used by economy.js) ──────────
 
 export function getSellPriceMultiplier(resourceType) {
   if (!buildingsState) return 1
   let mult = 1
   for (const b of buildingsState) {
-    if (!b.built) continue
-    if (b.effect.type === 'sellBonus' && b.effect.resource === resourceType) {
-      mult += b.effect.bonus
-    }
-    if (b.effect.type === 'transformBonus' && b.effect.resource === resourceType) {
-      mult *= b.effect.multiplier
+    if (b.level <= 0) continue
+    if (b.effect.type === 'sellBonus') {
+      mult += b.effect.bonus * b.level
     }
   }
   return mult
@@ -176,17 +182,36 @@ export function getCapacityBonus() {
   if (!buildingsState) return 0
   let bonus = 0
   for (const b of buildingsState) {
-    if (!b.built) continue
+    if (b.level <= 0) continue
     if (b.effect.type === 'capacityBonus') {
-      bonus += b.effect.bonus
+      bonus += b.effect.bonus * b.level
     }
   }
   return bonus
 }
 
-export function hasDynamicPrices() {
-  if (!buildingsState) return false
-  return buildingsState.some(b => b.built && b.effect.type === 'dynamicPrices')
+export function getSpeedBonus() {
+  if (!buildingsState) return 0
+  let bonus = 0
+  for (const b of buildingsState) {
+    if (b.level <= 0) continue
+    if (b.effect.type === 'speedBonus') {
+      bonus += b.effect.bonus * b.level
+    }
+  }
+  return bonus
+}
+
+export function getCollectRadiusBonus() {
+  if (!buildingsState) return 0
+  let bonus = 0
+  for (const b of buildingsState) {
+    if (b.level <= 0) continue
+    if (b.effect.type === 'collectRadiusBonus') {
+      bonus += b.effect.bonus * b.level
+    }
+  }
+  return bonus
 }
 
 // ─── Building 3D Models ─────────────────────────────
@@ -195,7 +220,7 @@ export function createBuildingPlots(scene) {
   buildingMeshes = {}
 
   for (const building of buildingsState) {
-    if (building.built) {
+    if (building.level > 0) {
       buildingMeshes[building.id] = createBuiltBuilding(scene, building)
     } else {
       buildingMeshes[building.id] = createEmptyPlot(scene, building)
@@ -214,19 +239,50 @@ export function upgradePlotToBuilding(scene, buildingId) {
     scene.remove(oldMesh)
     oldMesh.traverse(child => {
       if (child.geometry) child.geometry.dispose()
-      if (child.material) child.material.dispose()
+      if (child.material) {
+        if (child.material.map) child.material.map.dispose()
+        child.material.dispose()
+      }
     })
   }
 
   buildingMeshes[buildingId] = createBuiltBuilding(scene, building)
 }
 
+// Update the marker/pin after a delivery (fix: pins not updating)
+export function refreshBuildingMarker(scene, buildingId) {
+  const building = getBuildingById(buildingId)
+  if (!building) return
+  // Only refresh if not fully built (or upgradeable)
+  if (building.level >= building.maxLevel && building.built) return
+
+  const oldMesh = buildingMeshes[buildingId]
+  if (oldMesh) {
+    scene.remove(oldMesh)
+    oldMesh.traverse(child => {
+      if (child.geometry) child.geometry.dispose()
+      if (child.material) {
+        if (child.material.map) child.material.map.dispose()
+        child.material.dispose()
+      }
+    })
+  }
+
+  if (building.level > 0) {
+    buildingMeshes[buildingId] = createBuiltBuilding(scene, building)
+  } else {
+    buildingMeshes[buildingId] = createEmptyPlot(scene, building)
+  }
+}
+
 function createEmptyPlot(scene, building) {
   const group = new THREE.Group()
   const isWip = building.wip
+  const hw = building.size.w / 2
+  const hd = building.size.d / 2
 
   const outlineColor = isWip ? 0x888888 : 0xFFD700
-  const outlineGeo = new THREE.RingGeometry(4, 4.3, 4)
+  const outlineGeo = new THREE.RingGeometry(Math.max(hw, hd), Math.max(hw, hd) + 0.3, 4)
   const outlineMat = new THREE.MeshBasicMaterial({
     color: outlineColor,
     side: THREE.DoubleSide,
@@ -241,7 +297,7 @@ function createEmptyPlot(scene, building) {
 
   const postGeo = new THREE.CylinderGeometry(0.1, 0.1, 1.5, 6)
   const postMat = new THREE.MeshLambertMaterial({ color: isWip ? 0x666666 : 0xDDA520 })
-  const offsets = [[-3, -3], [3, -3], [3, 3], [-3, 3]]
+  const offsets = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]]
   offsets.forEach(([ox, oz]) => {
     const post = new THREE.Mesh(postGeo, postMat)
     post.position.set(ox, 0.75, oz)
@@ -252,7 +308,7 @@ function createEmptyPlot(scene, building) {
   const signGeo = new THREE.BoxGeometry(2, 1, 0.15)
   const signMat = new THREE.MeshLambertMaterial({ color: isWip ? 0x666666 : 0xCC8800 })
   const sign = new THREE.Mesh(signGeo, signMat)
-  sign.position.set(0, 2, -3)
+  sign.position.set(0, 2, -hd)
   sign.castShadow = true
   group.add(sign)
 
@@ -334,6 +390,7 @@ function createBuildingMarker(building) {
   const resTypes = getResourceTypes()
 
   const name = t(building.name)
+  const levelText = building.level > 0 ? ` (Niv.${building.level}/${building.maxLevel})` : ''
   const costLines = []
   for (const [res, amount] of Object.entries(building.cost)) {
     const delivered = building.delivered[res] || 0
@@ -344,33 +401,39 @@ function createBuildingMarker(building) {
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')
   canvas.width = 512
-  canvas.height = 256
+  canvas.height = 280
 
   ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'
-  roundRect(ctx, 10, 10, 492, 236, 20)
+  roundRect(ctx, 10, 10, 492, 260, 20)
   ctx.fill()
 
   ctx.strokeStyle = '#FFD700'
   ctx.lineWidth = 4
-  roundRect(ctx, 10, 10, 492, 236, 20)
+  roundRect(ctx, 10, 10, 492, 260, 20)
   ctx.stroke()
 
   ctx.fillStyle = '#FFD700'
-  ctx.font = 'bold 48px Arial'
+  ctx.font = 'bold 42px Arial'
   ctx.textAlign = 'center'
-  ctx.fillText(name, 256, 70)
+  ctx.fillText(name + levelText, 256, 55)
+
+  // Show effect description
+  const effectText = t(`${building.name}Effect`)
+  ctx.font = '26px Arial'
+  ctx.fillStyle = '#88DD88'
+  ctx.fillText(effectText, 256, 85)
 
   ctx.strokeStyle = '#FFD70088'
   ctx.lineWidth = 2
   ctx.beginPath()
-  ctx.moveTo(60, 90)
-  ctx.lineTo(452, 90)
+  ctx.moveTo(60, 100)
+  ctx.lineTo(452, 100)
   ctx.stroke()
 
-  ctx.font = '36px Arial'
+  ctx.font = '34px Arial'
   ctx.fillStyle = '#FFFFFF'
   costLines.forEach((line, i) => {
-    ctx.fillText(line, 256, 135 + i * 45)
+    ctx.fillText(line, 256, 140 + i * 42)
   })
 
   const texture = new THREE.CanvasTexture(canvas)
@@ -382,20 +445,20 @@ function createBuildingMarker(building) {
     depthTest: false,
   })
   const sprite = new THREE.Sprite(spriteMat)
-  sprite.scale.set(8, 4, 1)
+  sprite.scale.set(8, 4.4, 1)
   group.add(sprite)
 
   const arrowGeo = new THREE.ConeGeometry(0.4, 1.2, 4)
   const arrowMat = new THREE.MeshBasicMaterial({ color: 0xFFD700 })
   const arrow = new THREE.Mesh(arrowGeo, arrowMat)
   arrow.rotation.x = Math.PI
-  arrow.position.y = -2.5
+  arrow.position.y = -2.8
   group.add(arrow)
 
   const poleGeo = new THREE.CylinderGeometry(0.06, 0.06, 4.5, 4)
   const poleMat = new THREE.MeshBasicMaterial({ color: 0xFFD700, transparent: true, opacity: 0.5 })
   const pole = new THREE.Mesh(poleGeo, poleMat)
-  pole.position.y = -5
+  pole.position.y = -5.5
   group.add(pole)
 
   return group
@@ -419,30 +482,33 @@ function createBuiltBuilding(scene, building) {
   const group = new THREE.Group()
 
   switch (building.id) {
-    case 'maison':
-      createMaisonModel(group)
-      break
     case 'entrepot':
-      createEntrepotModel(group)
+      createEntrepotModel(group, building.level)
+      break
+    case 'stationService':
+      createStationServiceModel(group, building.level)
       break
     case 'marche':
-      createMarcheModel(group)
+      createMarcheModel(group, building.level)
       break
-    case 'scierie':
-      createScierieModel(group)
+    case 'magasinEquipement':
+      createMagasinEquipementModel(group, building.level)
       break
     case 'concession':
       createConcessionModel(group)
       break
-    case 'fonderie':
-      createFonderieModel(group)
-      break
-    case 'stationService':
-      createStationServiceModel(group)
-      break
-    case 'laboratoire':
-      createLaboratoireModel(group)
-      break
+  }
+
+  // Add level indicator for upgradeable buildings
+  if (!building.wip && building.level < building.maxLevel) {
+    const marker = createBuildingMarker(building)
+    marker.position.y = 10
+    group.add(marker)
+  } else if (!building.wip && building.level >= building.maxLevel) {
+    // Show max level badge
+    const badge = createMaxBadge(building)
+    badge.position.y = 8
+    group.add(badge)
   }
 
   const terrainY = getTerrainHeight(building.position.x, building.position.z)
@@ -452,253 +518,396 @@ function createBuiltBuilding(scene, building) {
   return group
 }
 
+function createMaxBadge(building) {
+  const group = new THREE.Group()
+
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  canvas.width = 256
+  canvas.height = 100
+
+  ctx.fillStyle = 'rgba(0, 80, 0, 0.7)'
+  roundRect(ctx, 5, 5, 246, 90, 15)
+  ctx.fill()
+
+  ctx.strokeStyle = '#44FF44'
+  ctx.lineWidth = 3
+  roundRect(ctx, 5, 5, 246, 90, 15)
+  ctx.stroke()
+
+  ctx.fillStyle = '#44FF44'
+  ctx.font = 'bold 36px Arial'
+  ctx.textAlign = 'center'
+  ctx.fillText(`${t(building.name)} MAX`, 128, 60)
+
+  const texture = new THREE.CanvasTexture(canvas)
+  const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false })
+  const sprite = new THREE.Sprite(spriteMat)
+  sprite.scale.set(5, 2, 1)
+  group.add(sprite)
+  return group
+}
+
 // ─── Building Models ────────────────────────────────
 
-function createMaisonModel(group) {
-  const wallGeo = new THREE.BoxGeometry(5, 3, 5)
-  const wallMat = new THREE.MeshLambertMaterial({ color: 0xE8C89A })
-  const walls = new THREE.Mesh(wallGeo, wallMat)
-  walls.position.y = 1.5
-  walls.castShadow = true
-  group.add(walls)
-
-  const roofGeo = new THREE.ConeGeometry(4.2, 2.5, 4)
-  const roofMat = new THREE.MeshLambertMaterial({ color: 0xCC4444 })
-  const roof = new THREE.Mesh(roofGeo, roofMat)
-  roof.position.y = 4.25
-  roof.rotation.y = Math.PI / 4
-  roof.castShadow = true
-  group.add(roof)
-
-  const doorGeo = new THREE.BoxGeometry(1, 2, 0.1)
-  const doorMat = new THREE.MeshLambertMaterial({ color: 0x6B3A1F })
-  const door = new THREE.Mesh(doorGeo, doorMat)
-  door.position.set(0, 1, 2.55)
-  group.add(door)
-
-  const winGeo = new THREE.BoxGeometry(1, 0.8, 0.1)
-  const winMat = new THREE.MeshLambertMaterial({ color: 0x88CCFF })
-  const win = new THREE.Mesh(winGeo, winMat)
-  win.position.set(1.8, 2, 2.55)
-  group.add(win)
-}
-
-function createEntrepotModel(group) {
-  const wallGeo = new THREE.BoxGeometry(7, 4, 6)
+function createEntrepotModel(group, level) {
+  // Large warehouse - grows with level
+  const scl = 1 + level * 0.15
+  const wallGeo = new THREE.BoxGeometry(9 * scl, 5 * scl, 7 * scl)
   const wallMat = new THREE.MeshLambertMaterial({ color: 0x8B8B8B })
   const walls = new THREE.Mesh(wallGeo, wallMat)
-  walls.position.y = 2
+  walls.position.y = 2.5 * scl
   walls.castShadow = true
   group.add(walls)
 
-  const roofGeo = new THREE.BoxGeometry(7.5, 0.4, 6.5)
+  // Corrugated roof
+  const roofGeo = new THREE.BoxGeometry(9.5 * scl, 0.4, 7.5 * scl)
   const roofMat = new THREE.MeshLambertMaterial({ color: 0x555555 })
   const roof = new THREE.Mesh(roofGeo, roofMat)
-  roof.position.y = 4.2
+  roof.position.y = 5.2 * scl
   roof.castShadow = true
   group.add(roof)
 
-  const doorGeo = new THREE.BoxGeometry(3, 3.5, 0.1)
+  // Big rolling door
+  const doorGeo = new THREE.BoxGeometry(4, 4 * scl, 0.1)
   const doorMat = new THREE.MeshLambertMaterial({ color: 0xDDA520 })
   const door = new THREE.Mesh(doorGeo, doorMat)
-  door.position.set(0, 1.75, 3.05)
+  door.position.set(0, 2 * scl, 3.55 * scl)
   group.add(door)
+
+  // Side door
+  const sideDoorGeo = new THREE.BoxGeometry(0.1, 2.5, 1.5)
+  const sideDoor = new THREE.Mesh(sideDoorGeo, doorMat)
+  sideDoor.position.set(4.55 * scl, 1.25, 0)
+  group.add(sideDoor)
+
+  // Crates inside (visible through door)
+  const crateMat = new THREE.MeshLambertMaterial({ color: 0xC49A6C })
+  for (let i = 0; i < Math.min(level, 4); i++) {
+    const crateGeo = new THREE.BoxGeometry(1.2, 1.2, 1.2)
+    const crate = new THREE.Mesh(crateGeo, crateMat)
+    crate.position.set(-2 + i * 1.5, 0.6, 2)
+    group.add(crate)
+  }
+
+  // Level sign
+  addLevelSign(group, level, 0xDDA520, 5 * scl + 0.5)
 }
 
-function createMarcheModel(group) {
-  const platformGeo = new THREE.BoxGeometry(6, 0.3, 5)
+function createStationServiceModel(group, level) {
+  // Gas station with multiple pumps - grows with level
+  const numPumps = 2 + Math.min(level, 3)
+
+  // Main canopy (wider for more pumps)
+  const canopyW = 4 + numPumps * 2.5
+  const canopyGeo = new THREE.BoxGeometry(canopyW, 0.4, 8)
+  const canopyMat = new THREE.MeshLambertMaterial({ color: 0xDD2222 })
+  const canopy = new THREE.Mesh(canopyGeo, canopyMat)
+  canopy.position.y = 5
+  canopy.castShadow = true
+  group.add(canopy)
+
+  // White stripe on canopy
+  const stripeGeo = new THREE.BoxGeometry(canopyW + 0.1, 0.42, 1)
+  const stripeMat = new THREE.MeshLambertMaterial({ color: 0xFFFFFF })
+  const stripe = new THREE.Mesh(stripeGeo, stripeMat)
+  stripe.position.set(0, 5.01, 0)
+  group.add(stripe)
+
+  // Support pillars
+  const pillarGeo = new THREE.CylinderGeometry(0.25, 0.25, 5, 8)
+  const pillarMat = new THREE.MeshLambertMaterial({ color: 0xCCCCCC })
+  const halfW = canopyW / 2 - 1
+  const pillarPositions = [[-halfW, -3], [halfW, -3], [-halfW, 3], [halfW, 3]]
+  pillarPositions.forEach(([px, pz]) => {
+    const pillar = new THREE.Mesh(pillarGeo, pillarMat)
+    pillar.position.set(px, 2.5, pz)
+    pillar.castShadow = true
+    group.add(pillar)
+  })
+
+  // Fuel pumps
+  const pumpBodyGeo = new THREE.BoxGeometry(0.7, 2.2, 0.5)
+  const pumpMat = new THREE.MeshLambertMaterial({ color: 0xEEEEEE })
+  const pumpColors = [0xDD2222, 0x22AA22, 0x2222DD, 0xDDDD22, 0xDD22DD]
+  const startX = -(numPumps - 1) * 1.5 / 2
+
+  for (let i = 0; i < numPumps; i++) {
+    const pumpGroup = new THREE.Group()
+    const pump = new THREE.Mesh(pumpBodyGeo, pumpMat)
+    pump.position.y = 1.1
+    pump.castShadow = true
+    pumpGroup.add(pump)
+
+    // Color strip on pump
+    const stripGeo = new THREE.BoxGeometry(0.72, 0.4, 0.52)
+    const stripMat = new THREE.MeshLambertMaterial({ color: pumpColors[i % pumpColors.length] })
+    const pStrip = new THREE.Mesh(stripGeo, stripMat)
+    pStrip.position.y = 1.8
+    pumpGroup.add(pStrip)
+
+    // Nozzle holder
+    const nozzleGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.8, 6)
+    const nozzleMat = new THREE.MeshLambertMaterial({ color: 0x333333 })
+    const nozzle = new THREE.Mesh(nozzleGeo, nozzleMat)
+    nozzle.rotation.z = Math.PI / 4
+    nozzle.position.set(0.4, 1.5, 0)
+    pumpGroup.add(nozzle)
+
+    // Base
+    const baseGeo = new THREE.BoxGeometry(1, 0.2, 0.8)
+    const baseMat = new THREE.MeshLambertMaterial({ color: 0x999999 })
+    const base = new THREE.Mesh(baseGeo, baseMat)
+    base.position.y = 0.1
+    pumpGroup.add(base)
+
+    pumpGroup.position.set(startX + i * 2.5, 0, 0)
+    group.add(pumpGroup)
+  }
+
+  // Back office building
+  const officeGeo = new THREE.BoxGeometry(5, 3.5, 3)
+  const officeMat = new THREE.MeshLambertMaterial({ color: 0xCCBBAA })
+  const office = new THREE.Mesh(officeGeo, officeMat)
+  office.position.set(0, 1.75, -5.5)
+  office.castShadow = true
+  group.add(office)
+
+  // Office window
+  const winGeo = new THREE.BoxGeometry(2, 1.5, 0.1)
+  const winMat = new THREE.MeshLambertMaterial({ color: 0x88CCFF })
+  const win = new THREE.Mesh(winGeo, winMat)
+  win.position.set(0, 2, -4)
+  group.add(win)
+
+  // Office door
+  const doorGeo = new THREE.BoxGeometry(1.2, 2.2, 0.1)
+  const doorMat = new THREE.MeshLambertMaterial({ color: 0x6B3A1F })
+  const door = new THREE.Mesh(doorGeo, doorMat)
+  door.position.set(2, 1.1, -4)
+  group.add(door)
+
+  // Concrete pad under pumps
+  const padGeo = new THREE.BoxGeometry(canopyW + 2, 0.15, 10)
+  const padMat = new THREE.MeshLambertMaterial({ color: 0xBBBBBB })
+  const pad = new THREE.Mesh(padGeo, padMat)
+  pad.position.y = 0.075
+  group.add(pad)
+
+  addLevelSign(group, level, 0xDD2222, 5.5)
+}
+
+function createMarcheModel(group, level) {
+  // Open market with stalls - grows with level
+  const numStalls = 1 + Math.min(level, 4)
+
+  // Main platform
+  const platformW = 4 + numStalls * 2
+  const platformGeo = new THREE.BoxGeometry(platformW, 0.3, 6)
   const platformMat = new THREE.MeshLambertMaterial({ color: 0xC4A265 })
   const platform = new THREE.Mesh(platformGeo, platformMat)
   platform.position.y = 0.15
   platform.castShadow = true
   group.add(platform)
 
-  const counterGeo = new THREE.BoxGeometry(5, 1.2, 1)
-  const counterMat = new THREE.MeshLambertMaterial({ color: 0x8B6914 })
-  const counter = new THREE.Mesh(counterGeo, counterMat)
-  counter.position.set(0, 0.9, 0)
-  counter.castShadow = true
-  group.add(counter)
+  // Stalls/counters
+  const stallColors = [0xE07050, 0x50A0E0, 0x50E070, 0xE0D050, 0xA050E0]
+  const startX = -(numStalls - 1) * 2.5 / 2
 
-  const poleMat = new THREE.MeshLambertMaterial({ color: 0x6B4914 })
-  const poleGeo = new THREE.CylinderGeometry(0.12, 0.12, 3.5, 6)
-  const positions = [[-2.5, -2], [2.5, -2], [-2.5, 2], [2.5, 2]]
-  positions.forEach(([px, pz]) => {
-    const pole = new THREE.Mesh(poleGeo, poleMat)
-    pole.position.set(px, 1.75, pz)
-    pole.castShadow = true
-    group.add(pole)
-  })
+  for (let i = 0; i < numStalls; i++) {
+    // Counter
+    const counterGeo = new THREE.BoxGeometry(2, 1.2, 1)
+    const counterMat = new THREE.MeshLambertMaterial({ color: 0x8B6914 })
+    const counter = new THREE.Mesh(counterGeo, counterMat)
+    counter.position.set(startX + i * 2.5, 0.9, 0)
+    counter.castShadow = true
+    group.add(counter)
 
-  const canopyGeo = new THREE.BoxGeometry(6, 0.2, 5)
-  const canopyMat = new THREE.MeshLambertMaterial({ color: 0xE07050 })
-  const canopy = new THREE.Mesh(canopyGeo, canopyMat)
-  canopy.position.y = 3.5
-  canopy.castShadow = true
-  group.add(canopy)
+    // Awning poles
+    const poleMat = new THREE.MeshLambertMaterial({ color: 0x6B4914 })
+    const poleGeo = new THREE.CylinderGeometry(0.08, 0.08, 3.5, 6)
+    const pl = new THREE.Mesh(poleGeo, poleMat)
+    pl.position.set(startX + i * 2.5 - 1, 1.75, -1)
+    group.add(pl)
+    const pr = new THREE.Mesh(poleGeo, poleMat)
+    pr.position.set(startX + i * 2.5 + 1, 1.75, -1)
+    group.add(pr)
+
+    // Colored awning
+    const awningGeo = new THREE.BoxGeometry(2.2, 0.1, 2)
+    const awningMat = new THREE.MeshLambertMaterial({ color: stallColors[i % stallColors.length] })
+    const awning = new THREE.Mesh(awningGeo, awningMat)
+    awning.position.set(startX + i * 2.5, 3.5, 0)
+    awning.castShadow = true
+    group.add(awning)
+
+    // Little goods on counter
+    const goodGeo = new THREE.SphereGeometry(0.2, 6, 4)
+    const goodMat = new THREE.MeshLambertMaterial({ color: stallColors[(i + 2) % stallColors.length] })
+    for (let g = 0; g < 3; g++) {
+      const good = new THREE.Mesh(goodGeo, goodMat)
+      good.position.set(startX + i * 2.5 - 0.5 + g * 0.5, 1.7, 0)
+      group.add(good)
+    }
+  }
+
+  addLevelSign(group, level, 0xE07050, 4)
 }
 
-function createScierieModel(group) {
-  const wallGeo = new THREE.BoxGeometry(6, 3.5, 5)
-  const wallMat = new THREE.MeshLambertMaterial({ color: 0x7B4F2E })
+function createMagasinEquipementModel(group, level) {
+  // Equipment shop - tools and gear store
+  const scl = 1 + level * 0.1
+
+  // Main building
+  const wallGeo = new THREE.BoxGeometry(7 * scl, 3.5, 6 * scl)
+  const wallMat = new THREE.MeshLambertMaterial({ color: 0x4477AA })
   const walls = new THREE.Mesh(wallGeo, wallMat)
   walls.position.y = 1.75
   walls.castShadow = true
   group.add(walls)
 
-  const roofGeo = new THREE.BoxGeometry(6.5, 0.3, 5.5)
-  const roofMat = new THREE.MeshLambertMaterial({ color: 0x4A3520 })
+  // Roof
+  const roofGeo = new THREE.BoxGeometry(7.5 * scl, 0.3, 6.5 * scl)
+  const roofMat = new THREE.MeshLambertMaterial({ color: 0x335588 })
   const roof = new THREE.Mesh(roofGeo, roofMat)
   roof.position.y = 3.65
-  roof.rotation.z = 0.1
   roof.castShadow = true
   group.add(roof)
 
-  const stackGeo = new THREE.CylinderGeometry(0.3, 0.4, 2, 6)
-  const stackMat = new THREE.MeshLambertMaterial({ color: 0x555555 })
-  const stack = new THREE.Mesh(stackGeo, stackMat)
-  stack.position.set(2, 4.5, 0)
-  stack.castShadow = true
-  group.add(stack)
+  // Shop window
+  const winGeo = new THREE.BoxGeometry(4, 2, 0.1)
+  const winMat = new THREE.MeshLambertMaterial({ color: 0x88CCFF, transparent: true, opacity: 0.6 })
+  const win = new THREE.Mesh(winGeo, winMat)
+  win.position.set(0, 2, 3.05 * scl)
+  group.add(win)
 
-  const logMat = new THREE.MeshLambertMaterial({ color: 0x8B6914 })
-  for (let i = 0; i < 4; i++) {
-    const logGeo = new THREE.CylinderGeometry(0.25, 0.25, 2.5, 6)
-    const log = new THREE.Mesh(logGeo, logMat)
-    log.rotation.z = Math.PI / 2
-    log.position.set(-4, 0.3 + i * 0.5, -1 + i * 0.3)
-    group.add(log)
+  // Door
+  const doorGeo = new THREE.BoxGeometry(1.5, 2.5, 0.1)
+  const doorMat = new THREE.MeshLambertMaterial({ color: 0x6B3A1F })
+  const door = new THREE.Mesh(doorGeo, doorMat)
+  door.position.set(-2.2, 1.25, 3.05 * scl)
+  group.add(door)
+
+  // Tool display outside (grows with level)
+  const toolMat = new THREE.MeshLambertMaterial({ color: 0xDDA520 })
+  for (let i = 0; i < Math.min(level, 3); i++) {
+    // Shovel/tool racks
+    const rackGeo = new THREE.BoxGeometry(0.8, 2, 0.3)
+    const rack = new THREE.Mesh(rackGeo, toolMat)
+    rack.position.set(3.7 * scl, 1, -1.5 + i * 1.5)
+    group.add(rack)
   }
-}
 
-// ─── WIP Building Models ────────────────────────────
+  // Sign
+  const signGeo = new THREE.BoxGeometry(3, 0.8, 0.15)
+  const signMat = new THREE.MeshLambertMaterial({ color: 0xFFDD44 })
+  const sign = new THREE.Mesh(signGeo, signMat)
+  sign.position.set(0, 4.2, 3 * scl)
+  group.add(sign)
+
+  addLevelSign(group, level, 0x4477AA, 5)
+}
 
 function createConcessionModel(group) {
-  const wallGeo = new THREE.BoxGeometry(8, 3.5, 7)
+  // Very large dealership with parking lot and showroom
+
+  // Main showroom building (large with glass front)
+  const wallGeo = new THREE.BoxGeometry(14, 4.5, 10)
   const wallMat = new THREE.MeshLambertMaterial({ color: 0xD0D0D0 })
-  const walls = new THREE.Mesh(wallGeo, wallMat)
-  walls.position.y = 1.75
-  walls.castShadow = true
-  group.add(walls)
-
-  const glassMat = new THREE.MeshLambertMaterial({ color: 0x88CCFF, transparent: true, opacity: 0.5 })
-  const glassGeo = new THREE.BoxGeometry(7, 2.5, 0.1)
-  const glass = new THREE.Mesh(glassGeo, glassMat)
-  glass.position.set(0, 2, 3.55)
-  group.add(glass)
-
-  const roofGeo = new THREE.BoxGeometry(8.5, 0.3, 7.5)
-  const roofMat = new THREE.MeshLambertMaterial({ color: 0x444444 })
-  const roof = new THREE.Mesh(roofGeo, roofMat)
-  roof.position.y = 3.65
-  roof.castShadow = true
-  group.add(roof)
-
-  const vehicleGeo = new THREE.BoxGeometry(2, 1, 3)
-  const vehicleMat = new THREE.MeshLambertMaterial({ color: 0xCC3333 })
-  const vehicle = new THREE.Mesh(vehicleGeo, vehicleMat)
-  vehicle.position.set(0, 0.8, 0)
-  group.add(vehicle)
-}
-
-function createFonderieModel(group) {
-  const wallGeo = new THREE.BoxGeometry(7, 4.5, 6)
-  const wallMat = new THREE.MeshLambertMaterial({ color: 0x8B4513 })
   const walls = new THREE.Mesh(wallGeo, wallMat)
   walls.position.y = 2.25
   walls.castShadow = true
   group.add(walls)
 
-  const roofGeo = new THREE.BoxGeometry(7.5, 0.4, 6.5)
-  const roofMat = new THREE.MeshLambertMaterial({ color: 0x333333 })
+  // Glass facade
+  const glassMat = new THREE.MeshLambertMaterial({ color: 0x88CCFF, transparent: true, opacity: 0.5 })
+  const glassGeo = new THREE.BoxGeometry(12, 3.5, 0.1)
+  const glass = new THREE.Mesh(glassGeo, glassMat)
+  glass.position.set(0, 2.5, 5.05)
+  group.add(glass)
+
+  // Flat roof
+  const roofGeo = new THREE.BoxGeometry(14.5, 0.4, 10.5)
+  const roofMat = new THREE.MeshLambertMaterial({ color: 0x444444 })
   const roof = new THREE.Mesh(roofGeo, roofMat)
   roof.position.y = 4.7
   roof.castShadow = true
   group.add(roof)
 
-  const chimneyGeo = new THREE.CylinderGeometry(0.5, 0.7, 5, 8)
-  const chimneyMat = new THREE.MeshLambertMaterial({ color: 0x555555 })
-  const chimney = new THREE.Mesh(chimneyGeo, chimneyMat)
-  chimney.position.set(2.5, 6, -1.5)
-  chimney.castShadow = true
-  group.add(chimney)
+  // Vehicles in showroom
+  const vehicleColors = [0xCC3333, 0x3333CC, 0x33CC33, 0xCCCC33]
+  for (let i = 0; i < 3; i++) {
+    const vehicleGeo = new THREE.BoxGeometry(2, 1.2, 3.5)
+    const vehicleMat = new THREE.MeshLambertMaterial({ color: vehicleColors[i] })
+    const vehicle = new THREE.Mesh(vehicleGeo, vehicleMat)
+    vehicle.position.set(-4 + i * 4, 0.8, 1)
+    group.add(vehicle)
 
-  const glowGeo = new THREE.BoxGeometry(2, 1.5, 0.1)
-  const glowMat = new THREE.MeshBasicMaterial({ color: 0xFF4400 })
-  const glow = new THREE.Mesh(glowGeo, glowMat)
-  glow.position.set(0, 1.5, 3.05)
-  group.add(glow)
+    // Windshield
+    const windGeo = new THREE.BoxGeometry(1.6, 0.6, 0.1)
+    const windMat = new THREE.MeshLambertMaterial({ color: 0x88CCFF })
+    const wind = new THREE.Mesh(windGeo, windMat)
+    wind.position.set(-4 + i * 4, 1.6, 2.3)
+    group.add(wind)
+  }
+
+  // Parking lot (concrete pad with lines)
+  const parkingGeo = new THREE.BoxGeometry(16, 0.1, 8)
+  const parkingMat = new THREE.MeshLambertMaterial({ color: 0x888888 })
+  const parking = new THREE.Mesh(parkingGeo, parkingMat)
+  parking.position.set(0, 0.05, 10)
+  group.add(parking)
+
+  // Parking lines
+  const lineMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF })
+  for (let i = 0; i < 6; i++) {
+    const lineGeo = new THREE.BoxGeometry(0.1, 0.02, 3)
+    const line = new THREE.Mesh(lineGeo, lineMat)
+    line.position.set(-6 + i * 2.5, 0.12, 10)
+    group.add(line)
+  }
+
+  // Outdoor display vehicles
+  for (let i = 0; i < 2; i++) {
+    const vGeo = new THREE.BoxGeometry(2, 1.2, 3.5)
+    const vMat = new THREE.MeshLambertMaterial({ color: vehicleColors[i + 2] })
+    const v = new THREE.Mesh(vGeo, vMat)
+    v.position.set(-3 + i * 6, 0.6, 10)
+    group.add(v)
+  }
+
+  // Big sign on roof
+  const signGeo = new THREE.BoxGeometry(8, 1.5, 0.3)
+  const signMat = new THREE.MeshLambertMaterial({ color: 0x2244AA })
+  const sign = new THREE.Mesh(signGeo, signMat)
+  sign.position.set(0, 5.8, 4)
+  sign.castShadow = true
+  group.add(sign)
 }
 
-function createStationServiceModel(group) {
-  const canopyGeo = new THREE.BoxGeometry(8, 0.3, 5)
-  const canopyMat = new THREE.MeshLambertMaterial({ color: 0xDD2222 })
-  const canopy = new THREE.Mesh(canopyGeo, canopyMat)
-  canopy.position.y = 4
-  canopy.castShadow = true
-  group.add(canopy)
+function addLevelSign(group, level, color, y) {
+  if (level <= 0) return
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  canvas.width = 128
+  canvas.height = 64
 
-  const pillarGeo = new THREE.CylinderGeometry(0.2, 0.2, 4, 6)
-  const pillarMat = new THREE.MeshLambertMaterial({ color: 0xCCCCCC })
-  const pillarPositions = [[-3, -2], [3, -2], [-3, 2], [3, 2]]
-  pillarPositions.forEach(([px, pz]) => {
-    const pillar = new THREE.Mesh(pillarGeo, pillarMat)
-    pillar.position.set(px, 2, pz)
-    pillar.castShadow = true
-    group.add(pillar)
-  })
+  ctx.fillStyle = `rgba(0,0,0,0.5)`
+  roundRect(ctx, 2, 2, 124, 60, 10)
+  ctx.fill()
 
-  const pumpGeo = new THREE.BoxGeometry(0.6, 2, 0.4)
-  const pumpMat = new THREE.MeshLambertMaterial({ color: 0xEEEEEE })
-  const pump1 = new THREE.Mesh(pumpGeo, pumpMat)
-  pump1.position.set(-1, 1, 0)
-  pump1.castShadow = true
-  group.add(pump1)
-  const pump2 = new THREE.Mesh(pumpGeo, pumpMat)
-  pump2.position.set(1, 1, 0)
-  pump2.castShadow = true
-  group.add(pump2)
+  ctx.fillStyle = '#FFFFFF'
+  ctx.font = 'bold 32px Arial'
+  ctx.textAlign = 'center'
+  const stars = '\u2605'.repeat(Math.min(level, 5))
+  ctx.fillText(stars, 64, 44)
 
-  const officeGeo = new THREE.BoxGeometry(4, 3, 3)
-  const officeMat = new THREE.MeshLambertMaterial({ color: 0xCCBBAA })
-  const office = new THREE.Mesh(officeGeo, officeMat)
-  office.position.set(0, 1.5, -4)
-  office.castShadow = true
-  group.add(office)
-}
-
-function createLaboratoireModel(group) {
-  const wallGeo = new THREE.BoxGeometry(6, 3, 6)
-  const wallMat = new THREE.MeshLambertMaterial({ color: 0xEEEEEE })
-  const walls = new THREE.Mesh(wallGeo, wallMat)
-  walls.position.y = 1.5
-  walls.castShadow = true
-  group.add(walls)
-
-  const stripGeo = new THREE.BoxGeometry(6.1, 0.3, 6.1)
-  const stripMat = new THREE.MeshLambertMaterial({ color: 0x2266CC })
-  const strip = new THREE.Mesh(stripGeo, stripMat)
-  strip.position.y = 2.5
-  group.add(strip)
-
-  const domeGeo = new THREE.SphereGeometry(2, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2)
-  const domeMat = new THREE.MeshLambertMaterial({ color: 0x88CCFF, transparent: true, opacity: 0.6 })
-  const dome = new THREE.Mesh(domeGeo, domeMat)
-  dome.position.y = 3
-  dome.castShadow = true
-  group.add(dome)
-
-  const antennaGeo = new THREE.CylinderGeometry(0.08, 0.08, 3, 4)
-  const antennaMat = new THREE.MeshLambertMaterial({ color: 0x666666 })
-  const antenna = new THREE.Mesh(antennaGeo, antennaMat)
-  antenna.position.set(0, 5.5, 0)
-  group.add(antenna)
-
-  const lightGeo = new THREE.SphereGeometry(0.15, 6, 4)
-  const lightMat = new THREE.MeshBasicMaterial({ color: 0xFF0000 })
-  const light = new THREE.Mesh(lightGeo, lightMat)
-  light.position.set(0, 7, 0)
-  group.add(light)
+  const texture = new THREE.CanvasTexture(canvas)
+  const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false })
+  const sprite = new THREE.Sprite(spriteMat)
+  sprite.scale.set(2.5, 1.2, 1)
+  sprite.position.y = y
+  group.add(sprite)
 }
 
 // ─── Nearby Building Detection ──────────────────────
@@ -707,8 +916,9 @@ export function getNearbyBuildingPlot(bx, bz, radius) {
   if (!buildingsState) return null
 
   for (const building of buildingsState) {
-    if (building.built) continue
     if (building.wip) continue
+    // Allow delivery if not at max level
+    if (building.level >= building.maxLevel) continue
 
     const dx = building.position.x - bx
     const dz = building.position.z - bz
@@ -728,6 +938,8 @@ export function getNearbyBuildingPlot(bx, bz, radius) {
         delivered: building.delivered,
         neededResource,
         type: 'building',
+        level: building.level,
+        maxLevel: building.maxLevel,
       }
     }
   }
