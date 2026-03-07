@@ -3,6 +3,12 @@
 Toutes les modifications notables du projet sont documentées ici.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [0.4.2] - 2026-03-07
+
+### Corrigé
+- Bug critique terrain : le Y local de PlaneGeometry mappait vers -worldZ après rotation, causant une inversion de toutes les zones, montagnes et couleurs du terrain (les mounds étaient au mauvais endroit par rapport aux ressources)
+- Raycaster terrain : ajout de `updateMatrixWorld(true)` pour que le raycaster prenne en compte la rotation du mesh sol — `getTerrainHeight()` retourne maintenant la vraie hauteur
+
 ## [0.4.1] - 2026-03-07
 
 ### Corrigé
