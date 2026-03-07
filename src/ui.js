@@ -342,6 +342,14 @@ function showChangelog() {
 function getChangelogHTML() {
   return `
     <div class="changelog-entry">
+      <h3>v0.8.2 <span class="changelog-date">2026-03-07</span></h3>
+      <ul>
+        <li>Bulldozer agrandi pour meilleure visibilite</li>
+        <li>Depot Central deplace loin de la station-service</li>
+        <li>Fix: station-service accessible pour livraison (rayon corrige)</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
       <h3>v0.8.1 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
         <li>Fix: point de vente et station-service ne se superposent plus</li>

@@ -6,10 +6,10 @@ export function createBulldozer(scene) {
   const group = new THREE.Group();
 
   // Placeholder box visible until model loads
-  const placeholderGeo = new THREE.BoxGeometry(2.5, 1.5, 4);
+  const placeholderGeo = new THREE.BoxGeometry(3.5, 2, 5.5);
   const placeholderMat = new THREE.MeshLambertMaterial({ color: 0xf5b731, transparent: true, opacity: 0.5 });
   const placeholder = new THREE.Mesh(placeholderGeo, placeholderMat);
-  placeholder.position.y = 1.2;
+  placeholder.position.y = 1.5;
   group.add(placeholder);
 
   scene.add(group);
@@ -21,13 +21,13 @@ export function createBulldozer(scene) {
       placeholderGeo.dispose();
       placeholderMat.dispose();
 
-      // Scale to match gameplay dimensions (~3.5 wide, ~5 long)
-      // OBJ is 2.25 wide x 1.58 tall x 3.62 deep, scale ~1.6
-      model.scale.set(1.6, 1.6, 1.6);
+      // Scale to match gameplay dimensions (~4.5 wide, ~6.5 long)
+      // OBJ is 2.25 wide x 1.58 tall x 3.62 deep, scale ~2.2
+      model.scale.set(2.2, 2.2, 2.2);
 
       // Center horizontally, lift so bottom sits at y=0
-      // OBJ bottom is at y=-0.39, so after scale: -0.39*1.6 = -0.624
-      model.position.set(0, 0.624, 0.33);
+      // OBJ bottom is at y=-0.39, so after scale: -0.39*2.2 = -0.858
+      model.position.set(0, 0.858, 0.45);
 
       // OBJ faces -Z by default, our game uses +Z as forward
       model.rotation.y = Math.PI;

@@ -3,6 +3,16 @@
 Toutes les modifications notables du projet sont documentées ici.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [0.8.2] - 2026-03-07
+
+### Modifié
+- Bulldozer agrandi (scale 1.6 → 2.2) pour une meilleure visibilité
+- Depot Central déplacé sur la route principale (0, -40) loin des bâtiments
+
+### Corrigé
+- Station-service inaccessible : le rayon de livraison était trop petit par rapport au rayon de collision du bâtiment (impossible d'approcher assez près pour livrer)
+- Rayon de livraison augmenté (10 → 14) pour tous les bâtiments
+
 ## [0.8.1] - 2026-03-07
 
 ### Corrigé
