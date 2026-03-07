@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { getTerrainHeight } from './world.js';
+import { getTerrainHeight, isOnMainRoad } from './world.js';
 
 export function createBulldozer(scene) {
   const group = new THREE.Group();
@@ -85,7 +85,8 @@ export function createBulldozer(scene) {
 }
 
 export function updateBulldozer(bulldozer, input, delta, speedBonus, mapSize) {
-  const speedMultiplier = 1 + speedBonus * 0.3;
+  const roadBonus = isOnMainRoad(bulldozer.mesh.position.x, bulldozer.mesh.position.z) ? 1.5 : 1;
+  const speedMultiplier = (1 + speedBonus * 0.3) * roadBonus;
   const maxSpeed = 15 * speedMultiplier;
   const acceleration = 20 * speedMultiplier;
   const deceleration = 15;

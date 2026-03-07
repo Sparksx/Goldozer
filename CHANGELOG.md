@@ -3,6 +3,11 @@
 Toutes les modifications notables du projet sont documentées ici.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [0.6.3] - 2026-03-07
+
+### Ajouté
+- Bonus de vitesse +50% lorsque le bulldozer roule sur les routes
+
 ## [0.6.2] - 2026-03-07
 
 ### Modifié

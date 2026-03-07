@@ -342,6 +342,12 @@ function showChangelog() {
 function getChangelogHTML() {
   return `
     <div class="changelog-entry">
+      <h3>v0.6.3 <span class="changelog-date">2026-03-07</span></h3>
+      <ul>
+        <li>Bonus de vitesse +50% sur les routes</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
       <h3>v0.6.2 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
         <li>Routes en geometrie continue epousant le terrain</li>
