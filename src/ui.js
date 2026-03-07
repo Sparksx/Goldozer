@@ -342,6 +342,12 @@ function showChangelog() {
 function getChangelogHTML() {
   return `
     <div class="changelog-entry">
+      <h3>v0.6.2 <span class="changelog-date">2026-03-07</span></h3>
+      <ul>
+        <li>Routes en geometrie continue epousant le terrain</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
       <h3>v0.6.1 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
         <li>Fix: pepites poussees suivent l'elevation du terrain</li>
