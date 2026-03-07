@@ -342,6 +342,13 @@ function showChangelog() {
 function getChangelogHTML() {
   return `
     <div class="changelog-entry">
+      <h3>v0.8.0 <span class="changelog-date">2026-03-07</span></h3>
+      <ul>
+        <li>Modele 3D du bulldozer (asset Kenney)</li>
+        <li>Chargement asynchrone avec placeholder</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
       <h3>v0.7.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
         <li>Entrepot et station-service : premier niveau ne coute que de la terre (15)</li>
