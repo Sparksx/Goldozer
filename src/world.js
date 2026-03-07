@@ -307,8 +307,8 @@ export function createWorld(scene) {
   return { sellPointMeshes }
 }
 
-// Check if position is on the main road artery (avoid placing objects there)
-function isOnMainRoad(x, z) {
+// Check if position is on the main road artery
+export function isOnMainRoad(x, z) {
   // Main NS artery: x in [-9, 9], z in [-85, 115]
   if (Math.abs(x) < 10 && z > -85 && z < 115) return true
   // EW cross road: z in [-5, 5], x in [-52, 52]
