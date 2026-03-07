@@ -60,17 +60,20 @@ export function createWorld(scene) {
 
   for (let i = 0; i < vertices.count; i++) {
     const x = vertices.getX(i)
-    const y = vertices.getY(i) // world Z after rotation
+    const y = vertices.getY(i)
+    // CRITICAL: PlaneGeometry local Y maps to -worldZ after rotation.x = -PI/2
+    // So worldZ = -y. We must use worldZ for all zone/position checks.
+    const wz = -y
 
     // Smooth terrain noise (gentle rolling hills)
-    let noise = fbmNoise(x * 0.008, y * 0.008, seed, 4) * 3
-    noise += smoothNoise(x * 0.025, y * 0.025, seed + 50) * 1
+    let noise = fbmNoise(x * 0.008, wz * 0.008, seed, 4) * 3
+    noise += smoothNoise(x * 0.025, wz * 0.025, seed + 50) * 1
 
     // Add gentle mounds at resource mountain locations (wide, smooth)
     for (const mt of mountains) {
       const dx = x - mt.x
-      const dy = y - mt.z
-      const dist = Math.sqrt(dx * dx + dy * dy)
+      const dz = wz - mt.z
+      const dist = Math.sqrt(dx * dx + dz * dz)
       if (dist < 70) {
         const t = 1 - dist / 70
         const falloff = t * t * (3 - 2 * t) // smoothstep
@@ -81,8 +84,8 @@ export function createWorld(scene) {
     // Add subtle bumps at vein locations (smooth)
     for (const vein of veins) {
       const dx = x - vein.x
-      const dy = y - vein.z
-      const dist = Math.sqrt(dx * dx + dy * dy)
+      const dz = wz - vein.z
+      const dist = Math.sqrt(dx * dx + dz * dz)
       if (dist < 30) {
         const t = 1 - dist / 30
         const falloff = t * t * (3 - 2 * t) // smoothstep
@@ -91,32 +94,32 @@ export function createWorld(scene) {
     }
 
     // Zone 2 hills (90 < z < 250) — smooth rolling hills
-    if (y > 90 && y < 250) {
+    if (wz > 90 && wz < 250) {
       // Smooth entry/exit from zone 2
       let zoneBlend = 1
-      if (y < 120) zoneBlend = (y - 90) / 30
-      if (y > 220) zoneBlend = (250 - y) / 30
+      if (wz < 120) zoneBlend = (wz - 90) / 30
+      if (wz > 220) zoneBlend = (250 - wz) / 30
       zoneBlend = Math.max(0, Math.min(1, zoneBlend))
       zoneBlend = zoneBlend * zoneBlend * (3 - 2 * zoneBlend)
 
-      const hillNoise = fbmNoise(x * 0.015, y * 0.015, seed + 100, 3) * 6
-        + smoothNoise(x * 0.04, y * 0.04, seed + 150) * 2
+      const hillNoise = fbmNoise(x * 0.015, wz * 0.015, seed + 100, 3) * 6
+        + smoothNoise(x * 0.04, wz * 0.04, seed + 150) * 2
       noise += hillNoise * zoneBlend
     }
 
     // Zone 3 forest floor (z > 260) — gentle undulations
-    if (y > 260) {
+    if (wz > 260) {
       let zoneBlend = 1
-      if (y < 280) zoneBlend = (y - 260) / 20
+      if (wz < 280) zoneBlend = (wz - 260) / 20
       zoneBlend = Math.max(0, Math.min(1, zoneBlend))
       zoneBlend = zoneBlend * zoneBlend * (3 - 2 * zoneBlend)
 
-      noise += fbmNoise(x * 0.012, y * 0.012, seed + 200, 3) * 2.5 * zoneBlend
+      noise += fbmNoise(x * 0.012, wz * 0.012, seed + 200, 3) * 2.5 * zoneBlend
     }
 
     // Flatten city area (smooth falloff)
     const cityDist = Math.sqrt(
-      (x - CITY_CENTER.x) ** 2 + (y - CITY_CENTER.z) ** 2
+      (x - CITY_CENTER.x) ** 2 + (wz - CITY_CENTER.z) ** 2
     )
     if (cityDist < CITY_RADIUS * 1.5) {
       const t = Math.max(0, 1 - cityDist / (CITY_RADIUS * 1.5))
@@ -125,7 +128,7 @@ export function createWorld(scene) {
     }
 
     // Flatten river area
-    const riverDist = Math.abs(y - riverZ)
+    const riverDist = Math.abs(wz - riverZ)
     if (riverDist < 12) {
       const t = 1 - riverDist / 12
       const flattenFactor = t * t
@@ -140,10 +143,10 @@ export function createWorld(scene) {
     // City area - sandy/dirt color
     if (cityDist < CITY_RADIUS) {
       r = 0.60; g = 0.56; b = 0.40
-    } else if (y > 260) {
+    } else if (wz > 260) {
       // Zone 3 - Forest: darker green
       r = 0.28; g = 0.48; b = 0.23
-    } else if (y > 85) {
+    } else if (wz > 85) {
       // Zone 2 - Hills: brownish-green
       r = 0.48; g = 0.56; b = 0.30
     } else {
@@ -175,6 +178,9 @@ export function createWorld(scene) {
   ground.rotation.x = -Math.PI / 2
   ground.receiveShadow = true
   scene.add(ground)
+
+  // CRITICAL: force world matrix update so raycaster accounts for rotation
+  ground.updateMatrixWorld(true)
 
   groundMesh = ground
   groundRaycaster = new THREE.Raycaster()

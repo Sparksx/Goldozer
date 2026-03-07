@@ -411,6 +411,13 @@ function showChangelog() {
 function getChangelogHTML() {
   return `
     <div class="changelog-entry">
+      <h3>v0.4.2 <span class="changelog-date">2026-03-07</span></h3>
+      <ul>
+        <li>Fix critique : terrain inversé (zones, montagnes, couleurs au mauvais endroit)</li>
+        <li>Fix raycaster : hauteur terrain réelle pour arbres, ressources, bâtiments</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
       <h3>v0.4.1 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
         <li>Terrain lisse (vrai bruit fBm multi-octaves au lieu de hash random)</li>
