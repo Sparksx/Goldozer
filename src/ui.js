@@ -342,6 +342,12 @@ function showChangelog() {
 function getChangelogHTML() {
   return `
     <div class="changelog-entry">
+      <h3>v0.7.1 <span class="changelog-date">2026-03-07</span></h3>
+      <ul>
+        <li>Preparation pour modeles 3D externes (dossier models/ + loader)</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
       <h3>v0.7.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
         <li>Entrepot et station-service : premier niveau ne coute que de la terre (15)</li>

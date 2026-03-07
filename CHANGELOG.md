@@ -3,6 +3,13 @@
 Toutes les modifications notables du projet sont documentées ici.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [0.7.1] - 2026-03-07
+
+### Ajouté
+- Dossier `public/models/` structure pour les modeles 3D externes (.obj/.mtl)
+- Sous-dossiers : `vehicles/`, `buildings/`, `nature/`
+- Module `src/modelLoader.js` : chargeur OBJ/MTL avec cache
+
 ## [0.7.0] - 2026-03-07
 
 ### Modifié
