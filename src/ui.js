@@ -347,6 +347,11 @@ function getChangelogHTML() {
         <li>Bulldozer agrandi pour meilleure visibilite</li>
         <li>Depot Central deplace loin de la station-service</li>
         <li>Fix: station-service accessible pour livraison (rayon corrige)</li>
+        <li>Fix: fuite memoire au redemarrage (dispose geometries/materiaux)</li>
+        <li>Fix: double chargement du monde avec sauvegarde</li>
+        <li>Fix: nettoyage des ressources entre les parties</li>
+        <li>Fix: collectedIds en Set pour performances O(1)</li>
+        <li>Fix: gestion de la perte du contexte WebGL</li>
       </ul>
     </div>
     <div class="changelog-entry">

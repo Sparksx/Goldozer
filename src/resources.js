@@ -97,7 +97,7 @@ function isInCity(x, z) {
 
 // ─── Spawn persistent resources ─────────────────────
 
-export function spawnResources(scene, collectedIds = []) {
+export function spawnResources(scene, collectedIds = new Set()) {
   const resources = []
   const seed = 12345
   let id = 0
@@ -105,7 +105,7 @@ export function spawnResources(scene, collectedIds = []) {
   // Zone 1 scattered (terre) — z from -380 to 70
   for (let i = 0; i < ZONE1_COUNT; i++) {
     const rid = id++
-    if (collectedIds.includes(rid)) continue
+    if (collectedIds.has(rid)) continue
 
     const x = seededRandom(seed + i * 37) * 600 - 300
     const z = seededRandom(seed + i * 37 + 17) * 450 - 380
@@ -123,7 +123,7 @@ export function spawnResources(scene, collectedIds = []) {
   // Zone 2 scattered (pierre) — z from 95 to 245
   for (let i = 0; i < ZONE2_COUNT; i++) {
     const rid = id++
-    if (collectedIds.includes(rid)) continue
+    if (collectedIds.has(rid)) continue
 
     const x = seededRandom(seed + 10000 + i * 41) * 600 - 300
     const z = 95 + seededRandom(seed + 10000 + i * 41 + 17) * 150
@@ -137,7 +137,7 @@ export function spawnResources(scene, collectedIds = []) {
   // Zone 3 scattered (bois) — z from 265 to 395
   for (let i = 0; i < ZONE3_COUNT; i++) {
     const rid = id++
-    if (collectedIds.includes(rid)) continue
+    if (collectedIds.has(rid)) continue
 
     const x = seededRandom(seed + 20000 + i * 43) * 700 - 350
     const z = 265 + seededRandom(seed + 20000 + i * 43 + 17) * 130
@@ -154,7 +154,7 @@ export function spawnResources(scene, collectedIds = []) {
 
     for (let j = 0; j < MOUNTAIN_RESOURCE_COUNT; j++) {
       const rid = id++
-      if (collectedIds.includes(rid)) continue
+      if (collectedIds.has(rid)) continue
 
       const angle = seededRandom(seed + 30000 + mi * 1000 + j * 53) * Math.PI * 2
       const dist = seededRandom(seed + 30000 + mi * 1000 + j * 53 + 7) * MOUNTAIN_RADIUS

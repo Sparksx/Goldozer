@@ -27,7 +27,8 @@ renderer.setSize(window.innerWidth, window.innerHeight)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.shadowMap.enabled = true
 renderer.shadowMap.type = THREE.PCFSoftShadowMap
-document.getElementById('game-container').appendChild(renderer.domElement)
+const gameContainer = document.getElementById('game-container')
+gameContainer.appendChild(renderer.domElement)
 
 const scene = new THREE.Scene()
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 300)
@@ -37,6 +38,21 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight
   camera.updateProjectionMatrix()
   renderer.setSize(window.innerWidth, window.innerHeight)
+})
+
+// ─── WebGL Context Lost / Restored ──────────────
+let contextLost = false
+
+renderer.domElement.addEventListener('webglcontextlost', (e) => {
+  e.preventDefault()
+  contextLost = true
+  gameRunning = false
+  showNotification('Contexte graphique perdu. Restauration...', 10000)
+})
+
+renderer.domElement.addEventListener('webglcontextrestored', () => {
+  contextLost = false
+  startGame()
 })
 
 // ─── Game State ──────────────────────────────────
@@ -59,8 +75,12 @@ initUI({
       state = createGameState()
       createZonesState()
       createBuildingsState()
+      startGame()
+    } else if (!worldLoaded) {
+      startGame()
+    } else {
+      gameRunning = true
     }
-    startGame()
   },
   onResumeGame: () => {
     gameRunning = true
@@ -74,11 +94,43 @@ initUI({
 showMainMenu()
 
 // ─── Start Game ──────────────────────────────────
-function startGame() {
-  // Clear previous scene objects
-  while (scene.children.length > 0) {
-    scene.remove(scene.children[0])
+function disposeObject(obj) {
+  if (obj.geometry) obj.geometry.dispose()
+  if (obj.material) {
+    if (Array.isArray(obj.material)) {
+      obj.material.forEach(m => {
+        if (m.map) m.map.dispose()
+        m.dispose()
+      })
+    } else {
+      if (obj.material.map) obj.material.map.dispose()
+      obj.material.dispose()
+    }
   }
+}
+
+function clearScene() {
+  // Dispose all resources meshes
+  for (const res of resources) {
+    if (res.mesh) {
+      scene.remove(res.mesh)
+      disposeObject(res.mesh)
+    }
+  }
+  resources = []
+
+  // Dispose all scene children recursively
+  while (scene.children.length > 0) {
+    const child = scene.children[0]
+    scene.remove(child)
+    child.traverse(disposeObject)
+  }
+}
+
+let worldLoaded = false
+
+function startGame() {
+  clearScene()
 
   // Create world (includes zone obstacles and building plots)
   worldData = createWorld(scene)
@@ -96,14 +148,14 @@ function startGame() {
   // Update HUD
   updateHUD(state)
 
+  worldLoaded = true
   gameRunning = true
 }
 
-// If we have a save, still need the world loaded for continue
+// If we have a save, load the world once (no double startGame)
 if (savedData) {
   startGame()
-  gameRunning = false // Wait for menu
-  showMainMenu()
+  gameRunning = false // Wait for menu choice
 }
 
 // ─── Sell Point Proximity ────────────────────────
@@ -132,6 +184,8 @@ let prevBulldozerZ = 0
 
 function animate() {
   requestAnimationFrame(animate)
+
+  if (contextLost) return
 
   const delta = Math.min(clock.getDelta(), 0.05)
 
@@ -198,7 +252,7 @@ function animate() {
     for (const item of collected) {
       addToBucket(state, item.type, 1)
       if (!item.isVein) {
-        state.collectedIds.push(item.id)
+        state.collectedIds.add(item.id)
       }
     }
     updateHUD(state)

@@ -12,6 +12,11 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 ### Corrigé
 - Station-service inaccessible : le rayon de livraison était trop petit par rapport au rayon de collision du bâtiment (impossible d'approcher assez près pour livrer)
 - Rayon de livraison augmenté (10 → 14) pour tous les bâtiments
+- Fuite memoire critique au redemarrage : toutes les geometries, materiaux et textures sont maintenant disposees lors d'un restart ou nouvelle partie
+- Double appel de startGame() au chargement avec sauvegarde : le monde n'est plus cree deux fois
+- Tableau de ressources jamais nettoye entre les parties : les anciens meshes sont disposees et le tableau est reinitialise
+- collectedIds converti en Set pour des lookups O(1) au lieu de O(n) — empeche aussi la degradation progressive des performances
+- Gestion de la perte du contexte WebGL (webglcontextlost/restored) : le jeu affiche un message et se restaure automatiquement au lieu de crasher silencieusement
 
 ## [0.8.1] - 2026-03-07
 
