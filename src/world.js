@@ -1,13 +1,16 @@
 import * as THREE from 'three'
-import { getResourceMountains } from './resources.js'
+import { getResourceMountains, getResourceVeins } from './resources.js'
 import { createZoneObstacles } from './zones.js'
 import { createBuildingPlots } from './buildings.js'
 
-const MAP_SIZE = 200
+const MAP_SIZE = 400
+
+const CITY_CENTER = { x: 0, z: 0 }
+const CITY_RADIUS = 50
+
 const SELL_POINTS = [
-  { x: 60, z: 60, name: 'Depot Nord-Est' },
-  { x: -60, z: -60, name: 'Depot Sud-Ouest' },
-  { x: 0, z: -80, name: 'Depot Sud' },
+  { x: 0, z: 0, name: 'Depot Central' },
+  { x: 0, z: -200, name: 'Depot Sud' },
 ]
 
 export function getMapSize() {
@@ -18,13 +21,21 @@ export function getSellPoints() {
   return SELL_POINTS
 }
 
+export function getCityCenter() {
+  return CITY_CENTER
+}
+
+export function getCityRadius() {
+  return CITY_RADIUS
+}
+
 let groundMesh = null
 let groundRaycaster = null
 
 export function getTerrainHeight(x, z) {
   if (!groundMesh || !groundRaycaster) return 0
   groundRaycaster.set(
-    new THREE.Vector3(x, 50, z),
+    new THREE.Vector3(x, 100, z),
     new THREE.Vector3(0, -1, 0)
   )
   const hits = groundRaycaster.intersectObject(groundMesh)
@@ -35,54 +46,106 @@ export function getTerrainHeight(x, z) {
 }
 
 export function createWorld(scene) {
-  // Ground plane (higher subdivision for smoother terrain)
-  const groundGeo = new THREE.PlaneGeometry(MAP_SIZE * 2, MAP_SIZE * 2, 64, 64)
+  const groundGeo = new THREE.PlaneGeometry(MAP_SIZE * 2, MAP_SIZE * 2, 128, 128)
 
-  // Apply zone-based coloring to vertices
   const colors = new Float32Array(groundGeo.attributes.position.count * 3)
   const vertices = groundGeo.attributes.position
 
   const seed = 42
   const mountains = getResourceMountains()
+  const veins = getResourceVeins()
+
+  // River z-line (must match zones.js)
+  const riverZ = 255
 
   for (let i = 0; i < vertices.count; i++) {
     const x = vertices.getX(i)
-    const y = vertices.getY(i) // this is world Z (plane is rotated)
-    let noise = seededNoise(x * 0.05, y * 0.05, seed) * 1.5
+    const y = vertices.getY(i) // world Z after rotation
+
+    let noise = seededNoise(x * 0.02, y * 0.02, seed) * 2
+    noise += seededNoise(x * 0.05, y * 0.05, seed + 50) * 1
 
     // Add gentle mounds at resource mountain locations
     for (const mt of mountains) {
       const dx = x - mt.x
       const dy = y - mt.z
       const dist = Math.sqrt(dx * dx + dy * dy)
-      if (dist < 30) {
-        const falloff = 1 - dist / 30
-        noise += falloff * falloff * 3
+      if (dist < 40) {
+        const falloff = 1 - dist / 40
+        noise += falloff * falloff * 4
       }
     }
 
-    // Zone 2 hills: more pronounced terrain
-    if (y > 60 && y < 140) {
-      noise += seededNoise(x * 0.08, y * 0.08, seed + 100) * 3
+    // Add subtle bumps at vein locations
+    for (const vein of veins) {
+      const dx = x - vein.x
+      const dy = y - vein.z
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      if (dist < 25) {
+        const falloff = 1 - dist / 25
+        noise += falloff * falloff * 2
+      }
+    }
+
+    // Zone 2 hills (90 < z < 250)
+    if (y > 90 && y < 250) {
+      noise += seededNoise(x * 0.05, y * 0.05, seed + 100) * 5
+      noise += seededNoise(x * 0.1, y * 0.1, seed + 150) * 2
+    }
+
+    // Zone 3 forest floor (z > 260)
+    if (y > 260) {
+      noise += seededNoise(x * 0.03, y * 0.03, seed + 200) * 2
+    }
+
+    // Flatten city area (smooth falloff)
+    const cityDist = Math.sqrt(
+      (x - CITY_CENTER.x) ** 2 + (y - CITY_CENTER.z) ** 2
+    )
+    if (cityDist < CITY_RADIUS * 1.5) {
+      const t = Math.max(0, 1 - cityDist / (CITY_RADIUS * 1.5))
+      const flattenFactor = t * t * (3 - 2 * t) // smoothstep
+      noise *= (1 - flattenFactor)
+    }
+
+    // Flatten river area
+    const riverDist = Math.abs(y - riverZ)
+    if (riverDist < 12) {
+      const t = 1 - riverDist / 12
+      const flattenFactor = t * t
+      noise *= (1 - flattenFactor * 0.9)
     }
 
     vertices.setZ(i, noise)
 
     // Zone-based ground color
     let r, g, b
-    if (y > 145) {
+
+    // City area - sandy/dirt color
+    if (cityDist < CITY_RADIUS) {
+      r = 0.60; g = 0.56; b = 0.40
+    } else if (y > 260) {
       // Zone 3 - Forest: darker green
-      r = 0.35; g = 0.55; b = 0.28
-    } else if (y > 60) {
+      r = 0.28; g = 0.48; b = 0.23
+    } else if (y > 85) {
       // Zone 2 - Hills: brownish-green
-      r = 0.52; g = 0.62; b = 0.35
+      r = 0.48; g = 0.56; b = 0.30
     } else {
       // Zone 1 - Plains: bright green
-      r = 0.49; g = 0.78; b = 0.38
+      r = 0.47; g = 0.75; b = 0.36
+    }
+
+    // City edge blending
+    if (cityDist >= CITY_RADIUS && cityDist < CITY_RADIUS * 1.5) {
+      const blend = (cityDist - CITY_RADIUS) / (CITY_RADIUS * 0.5)
+      const cityR = 0.60, cityG = 0.56, cityB = 0.40
+      r = cityR + (r - cityR) * blend
+      g = cityG + (g - cityG) * blend
+      b = cityB + (b - cityB) * blend
     }
 
     // Add slight variation
-    const variation = seededRandom(seed + i * 7) * 0.08 - 0.04
+    const variation = seededRandom(seed + i * 7) * 0.06 - 0.03
     colors[i * 3] = r + variation
     colors[i * 3 + 1] = g + variation
     colors[i * 3 + 2] = b + variation
@@ -100,10 +163,14 @@ export function createWorld(scene) {
   groundMesh = ground
   groundRaycaster = new THREE.Raycaster()
 
-  // Dirt paths (darker ground patches) - Zone 1 only
-  for (let i = 0; i < 8; i++) {
-    const px = seededRandom(seed + i * 100) * MAP_SIZE * 1.4 - MAP_SIZE * 0.7
-    const pz = seededRandom(seed + i * 100 + 50) * 200 - 150
+  // City roads
+  createCityRoads(scene)
+
+  // Dirt paths in Zone 1 (avoid city)
+  for (let i = 0; i < 15; i++) {
+    const px = seededRandom(seed + i * 100) * 500 - 250
+    const pz = seededRandom(seed + i * 100 + 50) * 300 - 350
+    if (Math.sqrt(px * px + pz * pz) < CITY_RADIUS + 15) continue
     const size = 10 + seededRandom(seed + i * 100 + 25) * 15
     const patchGeo = new THREE.CircleGeometry(size, 6)
     const patchMat = new THREE.MeshLambertMaterial({ color: 0xc9a96e })
@@ -114,43 +181,51 @@ export function createWorld(scene) {
     scene.add(patch)
   }
 
-  // Trees - distributed across zones
-  // Zone 1: sparse trees
-  for (let i = 0; i < 25; i++) {
-    const tx = seededRandom(seed + i * 200) * MAP_SIZE * 1.6 - MAP_SIZE * 0.8
-    const tz = seededRandom(seed + i * 200 + 100) * 200 - 170
-    if (Math.abs(tx) < 15 && Math.abs(tz) < 15) continue
+  // Trees - Zone 1 (sparse, avoid city)
+  for (let i = 0; i < 50; i++) {
+    const tx = seededRandom(seed + i * 200) * 600 - 300
+    const tz = seededRandom(seed + i * 200 + 100) * 400 - 380
+    if (Math.sqrt(tx * tx + tz * tz) < CITY_RADIUS + 15) continue
+    if (tz > 80) continue
     if (SELL_POINTS.some(sp => Math.hypot(sp.x - tx, sp.z - tz) < 12)) continue
     createTree(scene, tx, tz, seed + i)
   }
 
-  // Zone 2: some trees on hills
-  for (let i = 0; i < 12; i++) {
-    const tx = seededRandom(seed + 5000 + i * 200) * 300 - 150
-    const tz = 70 + seededRandom(seed + 5000 + i * 200 + 100) * 55
+  // Trees - Zone 2
+  for (let i = 0; i < 30; i++) {
+    const tx = seededRandom(seed + 5000 + i * 200) * 600 - 300
+    const tz = 95 + seededRandom(seed + 5000 + i * 200 + 100) * 150
     createTree(scene, tx, tz, seed + 5000 + i)
   }
 
-  // Zone 3: dense forest
-  for (let i = 0; i < 40; i++) {
-    const tx = seededRandom(seed + 8000 + i * 200) * 350 - 175
-    const tz = 148 + seededRandom(seed + 8000 + i * 200 + 100) * 47
+  // Trees - Zone 3 (dense forest)
+  for (let i = 0; i < 100; i++) {
+    const tx = seededRandom(seed + 8000 + i * 200) * 700 - 350
+    const tz = 265 + seededRandom(seed + 8000 + i * 200 + 100) * 130
     createTree(scene, tx, tz, seed + 8000 + i, true)
   }
 
-  // Rocks
-  for (let i = 0; i < 12; i++) {
-    const rx = seededRandom(seed + i * 300) * MAP_SIZE * 1.6 - MAP_SIZE * 0.8
-    const rz = seededRandom(seed + i * 300 + 150) * 200 - 170
-    if (Math.abs(rx) < 10 && Math.abs(rz) < 10) continue
+  // Rocks - Zone 1
+  for (let i = 0; i < 20; i++) {
+    const rx = seededRandom(seed + i * 300) * 600 - 300
+    const rz = seededRandom(seed + i * 300 + 150) * 400 - 380
+    if (Math.sqrt(rx * rx + rz * rz) < CITY_RADIUS + 10) continue
+    if (rz > 80) continue
     createRock(scene, rx, rz, seed + i)
   }
 
-  // More rocks in Zone 2
-  for (let i = 0; i < 15; i++) {
-    const rx = seededRandom(seed + 6000 + i * 300) * 300 - 150
-    const rz = 68 + seededRandom(seed + 6000 + i * 300 + 150) * 60
+  // Rocks - Zone 2
+  for (let i = 0; i < 25; i++) {
+    const rx = seededRandom(seed + 6000 + i * 300) * 600 - 300
+    const rz = 95 + seededRandom(seed + 6000 + i * 300 + 150) * 150
     createRock(scene, rx, rz, seed + 6000 + i)
+  }
+
+  // Rocks - Zone 3
+  for (let i = 0; i < 15; i++) {
+    const rx = seededRandom(seed + 9000 + i * 300) * 700 - 350
+    const rz = 265 + seededRandom(seed + 9000 + i * 300 + 150) * 130
+    createRock(scene, rx, rz, seed + 9000 + i)
   }
 
   // Sell points
@@ -169,34 +244,78 @@ export function createWorld(scene) {
   // Building plots
   createBuildingPlots(scene)
 
-  // Lighting (warm golden hour feel)
+  // Lighting
   const ambientLight = new THREE.AmbientLight(0xfff5e6, 0.65)
   scene.add(ambientLight)
 
   const dirLight = new THREE.DirectionalLight(0xfff0d0, 0.9)
-  dirLight.position.set(50, 80, 30)
+  dirLight.position.set(80, 120, 50)
   dirLight.castShadow = true
-  dirLight.shadow.mapSize.width = 1024
-  dirLight.shadow.mapSize.height = 1024
+  dirLight.shadow.mapSize.width = 2048
+  dirLight.shadow.mapSize.height = 2048
   dirLight.shadow.camera.near = 0.5
-  dirLight.shadow.camera.far = 200
-  dirLight.shadow.camera.left = -100
-  dirLight.shadow.camera.right = 100
-  dirLight.shadow.camera.top = 100
-  dirLight.shadow.camera.bottom = -100
+  dirLight.shadow.camera.far = 500
+  dirLight.shadow.camera.left = -250
+  dirLight.shadow.camera.right = 250
+  dirLight.shadow.camera.top = 250
+  dirLight.shadow.camera.bottom = -250
   scene.add(dirLight)
 
-  // Sky color (warm bright blue)
+  // Sky
   scene.background = new THREE.Color(0x8dd8f8)
-  scene.fog = new THREE.Fog(0x8dd8f8, 130, 260)
+  scene.fog = new THREE.Fog(0x8dd8f8, 200, 550)
 
   return { sellPointMeshes }
+}
+
+// ─── City Roads ──────────────────────────────────
+function createCityRoads(scene) {
+  const roadMat = new THREE.MeshLambertMaterial({ color: 0x555555 })
+  const markMat = new THREE.MeshBasicMaterial({ color: 0xFFDD44 })
+
+  // Main NS road (x=0, z from -55 to 50)
+  const nsRoadGeo = new THREE.PlaneGeometry(6, 110)
+  const nsRoad = new THREE.Mesh(nsRoadGeo, roadMat)
+  nsRoad.rotation.x = -Math.PI / 2
+  nsRoad.position.set(0, 0.04, -2)
+  scene.add(nsRoad)
+
+  // Main EW road (z=0, x from -50 to 50)
+  const ewRoadGeo = new THREE.PlaneGeometry(110, 6)
+  const ewRoad = new THREE.Mesh(ewRoadGeo, roadMat)
+  ewRoad.rotation.x = -Math.PI / 2
+  ewRoad.position.set(0, 0.04, 0)
+  scene.add(ewRoad)
+
+  // Center line markings NS
+  for (let z = -52; z <= 48; z += 8) {
+    const markGeo = new THREE.PlaneGeometry(0.3, 4)
+    const mark = new THREE.Mesh(markGeo, markMat)
+    mark.rotation.x = -Math.PI / 2
+    mark.position.set(0, 0.05, z)
+    scene.add(mark)
+  }
+
+  // Center line markings EW
+  for (let x = -52; x <= 52; x += 8) {
+    const markGeo = new THREE.PlaneGeometry(4, 0.3)
+    const mark = new THREE.Mesh(markGeo, markMat)
+    mark.rotation.x = -Math.PI / 2
+    mark.position.set(x, 0.05, 0)
+    scene.add(mark)
+  }
+
+  // Southern road to Depot Sud
+  const southRoadGeo = new THREE.PlaneGeometry(5, 160)
+  const southRoad = new THREE.Mesh(southRoadGeo, roadMat)
+  southRoad.rotation.x = -Math.PI / 2
+  southRoad.position.set(0, 0.03, -135)
+  scene.add(southRoad)
 }
 
 function createTree(scene, x, z, seed, isDense = false) {
   const group = new THREE.Group()
 
-  // Trunk
   const trunkGeo = new THREE.CylinderGeometry(0.3, 0.5, 3, 5)
   const trunkMat = new THREE.MeshLambertMaterial({ color: 0x8B4513 })
   const trunk = new THREE.Mesh(trunkGeo, trunkMat)
@@ -204,12 +323,11 @@ function createTree(scene, x, z, seed, isDense = false) {
   trunk.castShadow = true
   group.add(trunk)
 
-  // Foliage (stacked cones)
   const scale = 0.8 + seededRandom(seed + 999) * 0.6
-  const colors = isDense
+  const treeColors = isDense
     ? [0x2d7a3e, 0x1f6830, 0x256b38, 0x347d45]
     : [0x3dba6e, 0x5cc87a, 0x2ea854, 0x45d68a]
-  const color = colors[Math.floor(seededRandom(seed + 888) * colors.length)]
+  const color = treeColors[Math.floor(seededRandom(seed + 888) * treeColors.length)]
 
   const foliageGeo1 = new THREE.ConeGeometry(2.5 * scale, 3, 6)
   const foliageMat = new THREE.MeshLambertMaterial({ color })
@@ -232,8 +350,8 @@ function createTree(scene, x, z, seed, isDense = false) {
 function createRock(scene, x, z, seed) {
   const size = 0.5 + seededRandom(seed + 777) * 1.5
   const geo = new THREE.DodecahedronGeometry(size, 0)
-  const colors = [0x888888, 0x999999, 0x777777, 0xaaaaaa]
-  const color = colors[Math.floor(seededRandom(seed + 666) * colors.length)]
+  const rockColors = [0x888888, 0x999999, 0x777777, 0xaaaaaa]
+  const color = rockColors[Math.floor(seededRandom(seed + 666) * rockColors.length)]
   const mat = new THREE.MeshLambertMaterial({ color })
   const rock = new THREE.Mesh(geo, mat)
   const terrainY = getTerrainHeight(x, z)
@@ -250,7 +368,7 @@ function createRock(scene, x, z, seed) {
 function createSellPoint(scene, x, z) {
   const group = new THREE.Group()
 
-  // Building base (warm wood color)
+  // Building base
   const baseGeo = new THREE.BoxGeometry(5, 3.5, 5)
   const baseMat = new THREE.MeshLambertMaterial({ color: 0xe8b87a })
   const base = new THREE.Mesh(baseGeo, baseMat)
@@ -258,7 +376,7 @@ function createSellPoint(scene, x, z) {
   base.castShadow = true
   group.add(base)
 
-  // Roof (cheerful terracotta)
+  // Roof
   const roofGeo = new THREE.ConeGeometry(4.5, 2, 4)
   const roofMat = new THREE.MeshLambertMaterial({ color: 0xe07050 })
   const roof = new THREE.Mesh(roofGeo, roofMat)
@@ -274,14 +392,14 @@ function createSellPoint(scene, x, z) {
   pole.position.set(3.5, 1.25, 0)
   group.add(pole)
 
-  // Dollar sign (golden sphere on top)
+  // Dollar sign
   const signGeo = new THREE.SphereGeometry(0.5, 6, 4)
   const signMat = new THREE.MeshLambertMaterial({ color: 0xffd55a })
   const sign = new THREE.Mesh(signGeo, signMat)
   sign.position.set(3.5, 3, 0)
   group.add(sign)
 
-  // Soft glow ring around sell point
+  // Glow ring
   const ringGeo = new THREE.RingGeometry(6.5, 7, 20)
   const ringMat = new THREE.MeshBasicMaterial({
     color: 0xfde68a,
@@ -322,7 +440,7 @@ function createBorders(scene) {
   })
 }
 
-// Seeded random number generator
+// ─── Seeded Random ──────────────────────────────
 function seededRandom(seed) {
   const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453123
   return x - Math.floor(x)

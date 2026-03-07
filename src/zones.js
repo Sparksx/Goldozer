@@ -4,48 +4,47 @@ import { t } from './i18n.js'
 import { getResourceTypes } from './resources.js'
 
 // ─── Zone Definitions ───────────────────────────────
-// Map divided into 3 zones along Z axis
-// Zone 1: south/center (z < 60), Zone 2: mid-north (60 < z < 140), Zone 3: far north (z > 140)
+// Zone 1: south/center (z < 80), Zone 2: hills (90 < z < 250), Zone 3: forest (z > 260)
 
 const ZONE_DEFS = [
   {
     id: 1,
     name: 'plains',
-    zMin: -200,
-    zMax: 55,
+    zMin: -400,
+    zMax: 80,
     resourceType: 'terre',
     unlocked: true,
   },
   {
     id: 2,
     name: 'hills',
-    zMin: 65,
-    zMax: 135,
+    zMin: 90,
+    zMax: 250,
     resourceType: 'pierre',
     unlocked: false,
     obstacle: {
       type: 'rockslide',
-      zLine: 60,
+      zLine: 85,
       requiredResource: 'terre',
       requiredAmount: 50,
       delivered: 0,
-      chantierPos: { x: 0, z: 55 },
+      chantierPos: { x: 0, z: 78 },
     },
   },
   {
     id: 3,
     name: 'forest',
-    zMin: 145,
-    zMax: 200,
+    zMin: 260,
+    zMax: 400,
     resourceType: 'bois',
     unlocked: false,
     obstacle: {
       type: 'river',
-      zLine: 140,
+      zLine: 255,
       requiredResource: 'pierre',
       requiredAmount: 40,
       delivered: 0,
-      chantierPos: { x: 0, z: 135 },
+      chantierPos: { x: 0, z: 248 },
     },
   },
 ]
@@ -77,13 +76,11 @@ export function getZonesState() {
 
 export function getZoneAt(x, z) {
   if (!zonesState) return zonesState?.[0] || null
-  // Check zones from most specific to least
   for (const zone of zonesState) {
     if (z >= zone.zMin && z <= zone.zMax) {
       return zone
     }
   }
-  // Default to zone 1 for transition areas
   return zonesState[0]
 }
 
@@ -157,7 +154,6 @@ export function createZoneObstacles(scene) {
       obstacleGroups[zone.id] = createRiver(scene, zone.obstacle.zLine, zone.unlocked)
     }
 
-    // Chantier marker (always visible)
     createChantierMarker(scene, zone.obstacle.chantierPos, zone.id)
   }
 
@@ -168,7 +164,6 @@ export function removeObstacle(scene, zoneId) {
   const group = obstacleGroups[zoneId]
   if (!group) return
 
-  // Animate removal: just remove immediately for now
   scene.remove(group)
   group.traverse(child => {
     if (child.geometry) child.geometry.dispose()
@@ -180,7 +175,6 @@ export function removeObstacle(scene, zoneId) {
 function createRockslide(scene, zLine) {
   const group = new THREE.Group()
 
-  // Row of large boulders blocking the path across the full map width
   const rockMat = new THREE.MeshLambertMaterial({ color: 0x7a7a7a })
   const rockMat2 = new THREE.MeshLambertMaterial({ color: 0x666666 })
 
@@ -198,8 +192,8 @@ function createRockslide(scene, zLine) {
     group.add(rock)
   }
 
-  // Extend to cover full map width (-200 to 200)
-  for (let i = -200; i <= 200; i += 5) {
+  // Extend to cover full map width
+  for (let i = -400; i <= 400; i += 8) {
     const size = 1 + Math.abs(Math.sin(i * 0.7)) * 1.5
     const geo = new THREE.DodecahedronGeometry(size, 0)
     const rock = new THREE.Mesh(geo, i % 3 === 0 ? rockMat2 : rockMat)
@@ -219,8 +213,11 @@ function createRockslide(scene, zLine) {
 function createRiver(scene, zLine, bridgeBuilt) {
   const group = new THREE.Group()
 
-  // River water surface
-  const riverGeo = new THREE.PlaneGeometry(420, 12, 1, 1)
+  // River follows terrain height
+  const terrainAtRiver = getTerrainHeight(0, zLine)
+  const riverY = terrainAtRiver + 0.1
+
+  const riverGeo = new THREE.PlaneGeometry(820, 14, 1, 1)
   const riverMat = new THREE.MeshLambertMaterial({
     color: 0x4a90d9,
     transparent: true,
@@ -228,36 +225,35 @@ function createRiver(scene, zLine, bridgeBuilt) {
   })
   const river = new THREE.Mesh(riverGeo, riverMat)
   river.rotation.x = -Math.PI / 2
-  river.position.set(0, 0.15, zLine)
+  river.position.set(0, riverY, zLine)
   group.add(river)
 
   // River banks
   const bankMat = new THREE.MeshLambertMaterial({ color: 0x8B7355 })
-  const bankGeo = new THREE.BoxGeometry(420, 0.5, 2)
+  const bankGeo = new THREE.BoxGeometry(820, 0.5, 2)
   const bankNorth = new THREE.Mesh(bankGeo, bankMat)
-  bankNorth.position.set(0, 0.25, zLine + 7)
+  bankNorth.position.set(0, riverY + 0.15, zLine + 8)
   group.add(bankNorth)
   const bankSouth = new THREE.Mesh(bankGeo, bankMat)
-  bankSouth.position.set(0, 0.25, zLine - 7)
+  bankSouth.position.set(0, riverY + 0.15, zLine - 8)
   group.add(bankSouth)
 
   // Bridge (only if unlocked)
   if (bridgeBuilt) {
-    const bridgeGeo = new THREE.BoxGeometry(8, 0.5, 14)
+    const bridgeGeo = new THREE.BoxGeometry(8, 0.5, 18)
     const bridgeMat = new THREE.MeshLambertMaterial({ color: 0x8B6914 })
     const bridge = new THREE.Mesh(bridgeGeo, bridgeMat)
-    bridge.position.set(0, 0.4, zLine)
+    bridge.position.set(0, riverY + 0.3, zLine)
     bridge.castShadow = true
     group.add(bridge)
 
-    // Bridge railings
     const railMat = new THREE.MeshLambertMaterial({ color: 0x6B4914 })
-    const railGeo = new THREE.BoxGeometry(0.3, 1.5, 14)
+    const railGeo = new THREE.BoxGeometry(0.3, 1.5, 18)
     const railL = new THREE.Mesh(railGeo, railMat)
-    railL.position.set(-3.8, 1.1, zLine)
+    railL.position.set(-3.8, riverY + 1.1, zLine)
     group.add(railL)
     const railR = new THREE.Mesh(railGeo, railMat)
-    railR.position.set(3.8, 1.1, zLine)
+    railR.position.set(3.8, riverY + 1.1, zLine)
     group.add(railR)
   }
 
@@ -285,7 +281,7 @@ function createChantierMarker(scene, pos, zoneId) {
   sign.castShadow = true
   group.add(sign)
 
-  // Warning stripes on sign
+  // Warning stripes
   const stripeGeo = new THREE.BoxGeometry(0.3, 1.5, 0.22)
   const stripeMat = new THREE.MeshLambertMaterial({ color: 0x222222 })
   for (let i = -1; i <= 1; i++) {
@@ -294,7 +290,7 @@ function createChantierMarker(scene, pos, zoneId) {
     group.add(stripe)
   }
 
-  // Glow ring on ground
+  // Glow ring
   const ringGeo = new THREE.RingGeometry(5, 5.5, 20)
   const ringMat = new THREE.MeshBasicMaterial({
     color: 0xFF8C00,
@@ -307,7 +303,6 @@ function createChantierMarker(scene, pos, zoneId) {
   ring.position.y = 0.05
   group.add(ring)
 
-  // Floating 3D marker with chantier name and required resources
   if (zone?.obstacle && !zone.unlocked) {
     const marker = createChantierLabel(zone)
     marker.position.y = 8
@@ -325,36 +320,30 @@ function createChantierLabel(zone) {
   const resTypes = getResourceTypes()
   const obs = zone.obstacle
 
-  // Determine chantier name
   const nameKey = obs.type === 'rockslide' ? 'rockslideChantier' : 'riverChantier'
   const name = t(nameKey)
   const emoji = resTypes[obs.requiredResource]?.emoji || ''
   const costLine = `${emoji} ${t(obs.requiredResource)} ${obs.delivered}/${obs.requiredAmount}`
 
-  // Create canvas texture
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')
   canvas.width = 512
   canvas.height = 200
 
-  // Background
   ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'
   roundRect(ctx, 10, 10, 492, 180, 20)
   ctx.fill()
 
-  // Border
   ctx.strokeStyle = '#FF8C00'
   ctx.lineWidth = 4
   roundRect(ctx, 10, 10, 492, 180, 20)
   ctx.stroke()
 
-  // Title
   ctx.fillStyle = '#FF8C00'
   ctx.font = 'bold 42px Arial'
   ctx.textAlign = 'center'
   ctx.fillText(name, 256, 70)
 
-  // Divider
   ctx.strokeStyle = '#FF8C0088'
   ctx.lineWidth = 2
   ctx.beginPath()
@@ -362,7 +351,6 @@ function createChantierLabel(zone) {
   ctx.lineTo(452, 85)
   ctx.stroke()
 
-  // Resource cost
   ctx.font = '36px Arial'
   ctx.fillStyle = '#FFFFFF'
   ctx.fillText(costLine, 256, 130)
@@ -379,7 +367,6 @@ function createChantierLabel(zone) {
   sprite.scale.set(8, 3.2, 1)
   group.add(sprite)
 
-  // Arrow pointing down
   const arrowGeo = new THREE.ConeGeometry(0.4, 1.2, 4)
   const arrowMat = new THREE.MeshBasicMaterial({ color: 0xFF8C00 })
   const arrow = new THREE.Mesh(arrowGeo, arrowMat)
@@ -387,10 +374,9 @@ function createChantierLabel(zone) {
   arrow.position.y = -2
   group.add(arrow)
 
-  // Vertical pole from arrow to ground
-  const poleGeo = new THREE.CylinderGeometry(0.06, 0.06, 4, 4)
-  const poleMat = new THREE.MeshBasicMaterial({ color: 0xFF8C00, transparent: true, opacity: 0.5 })
-  const poleMesh = new THREE.Mesh(poleGeo, poleMat)
+  const poleGeo2 = new THREE.CylinderGeometry(0.06, 0.06, 4, 4)
+  const poleMat2 = new THREE.MeshBasicMaterial({ color: 0xFF8C00, transparent: true, opacity: 0.5 })
+  const poleMesh = new THREE.Mesh(poleGeo2, poleMat2)
   poleMesh.position.y = -4.5
   group.add(poleMesh)
 
@@ -422,7 +408,6 @@ export function clampToAccessibleZone(x, z, prevX, prevZ) {
     const zLine = zone.obstacle.zLine
 
     if (zone.obstacle.type === 'rockslide') {
-      // Block passage if going into zone 2 (z > zLine)
       if (z > zLine - 3 && prevZ <= zLine - 3) {
         return { x, z: zLine - 3 }
       }
@@ -432,12 +417,11 @@ export function clampToAccessibleZone(x, z, prevX, prevZ) {
     }
 
     if (zone.obstacle.type === 'river') {
-      // Block passage if going into zone 3 (z > zLine)
-      if (z > zLine - 7 && prevZ <= zLine - 7) {
-        return { x, z: zLine - 7 }
+      if (z > zLine - 8 && prevZ <= zLine - 8) {
+        return { x, z: zLine - 8 }
       }
-      if (z > zLine - 7) {
-        return { x, z: Math.min(z, zLine - 7) }
+      if (z > zLine - 8) {
+        return { x, z: Math.min(z, zLine - 8) }
       }
     }
   }

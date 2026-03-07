@@ -3,6 +3,34 @@
 Toutes les modifications notables du projet sont documentées ici.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [0.4.0] - 2026-03-07
+
+### Ajouté
+- Zone ville centrale avec terrain plat, routes et bâtiments organisés
+- Routes (nord-sud et est-ouest) avec marquages au sol dans la ville
+- Ressources redessinées en pépites colorées (icosaèdres) avec lueur émissive
+- Filons de ressources avec respawn automatique (timer 30-45s)
+- Marqueurs visuels au sol pour les filons de ressources
+- 4 nouveaux bâtiments WIP : Concession, Fonderie, Station-service, Laboratoire
+- Modèles 3D pour tous les nouveaux bâtiments
+- Depot Sud (second point de vente au sud de la carte)
+
+### Modifié
+- Carte agrandie (MAP_SIZE 200 → 400) pour plus d'espace d'exploration
+- Zone 2 (Collines) élargie : z 65-135 → z 90-250 (160 unités)
+- Zone 3 (Forêt) élargie : z 145-200 → z 260-400 (140 unités)
+- Ressources plus grosses, plus visibles et plus nombreuses
+- Couleurs de ressources variées par type (palettes de 4 couleurs)
+- Plus d'arbres et de rochers dans toutes les zones
+- Ombre et brouillard ajustés pour la carte plus grande
+
+### Corrigé
+- Ressources flottantes : meilleur échantillonnage du terrain (raycaster à y=100)
+- Arbres et bâtiments enfoncés dans le sol : terrain aplati dans la ville
+- Rivière invisible/enterrée : suit maintenant la hauteur du terrain
+- Terrain aplati autour de la rivière pour éviter les artefacts visuels
+- Pas de ressources dans la zone ville (exclusion par rayon)
+
 ## [0.3.0] - 2026-03-07
 
 ### Ajouté
