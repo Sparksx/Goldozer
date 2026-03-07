@@ -3,6 +3,15 @@
 Toutes les modifications notables du projet sont documentées ici.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [0.4.1] - 2026-03-07
+
+### Corrigé
+- Terrain lisse : remplacement du bruit pseudo-random par un vrai bruit de valeur avec interpolation bilinéaire et smoothstep (fBm multi-octaves)
+- Montagnes trop abruptes : mounds élargis (rayon 70) avec falloff smoothstep au lieu de quadratique
+- Collines zone 2 : transition douce aux bordures de zone avec blending progressif
+- Ressources sous le terrain : pépites placées plus haut (y + size * 0.9) et taille augmentée pour meilleure visibilité
+- Émissivité des pépites augmentée (0.3 → 0.4)
+
 ## [0.4.0] - 2026-03-07
 
 ### Ajouté
