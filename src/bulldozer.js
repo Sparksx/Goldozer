@@ -84,8 +84,8 @@ export function createBulldozer(scene) {
   };
 }
 
-export function updateBulldozer(bulldozer, input, delta, upgrades, mapSize) {
-  const speedMultiplier = 1 + upgrades.speed * 0.3;
+export function updateBulldozer(bulldozer, input, delta, speedBonus, mapSize) {
+  const speedMultiplier = 1 + speedBonus * 0.3;
   const maxSpeed = 15 * speedMultiplier;
   const acceleration = 20 * speedMultiplier;
   const deceleration = 15;

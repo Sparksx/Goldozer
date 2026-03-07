@@ -209,13 +209,14 @@ export function createWorld(scene) {
     scene.add(patch)
   }
 
-  // Trees - Zone 1 (sparse, avoid city)
+  // Trees - Zone 1 (sparse, avoid city and main road)
   for (let i = 0; i < 50; i++) {
     const tx = seededRandom(seed + i * 200) * 600 - 300
     const tz = seededRandom(seed + i * 200 + 100) * 400 - 380
     if (Math.sqrt(tx * tx + tz * tz) < CITY_RADIUS + 15) continue
     if (tz > 80) continue
     if (SELL_POINTS.some(sp => Math.hypot(sp.x - tx, sp.z - tz) < 12)) continue
+    if (isOnMainRoad(tx, tz)) continue
     createTree(scene, tx, tz, seed + i)
   }
 
@@ -272,11 +273,13 @@ export function createWorld(scene) {
   // Building plots
   createBuildingPlots(scene)
 
-  // Register building obstacles
+  // Register building obstacles (use building size for radius)
   const buildings = getBuildingsState()
   if (buildings) {
     for (const b of buildings) {
-      worldObstacles.push({ x: b.position.x, z: b.position.z, radius: 4.5, type: 'building' })
+      const bSize = b.size || { w: 8, d: 8 }
+      const radius = Math.max(bSize.w, bSize.d) / 2 + 1
+      worldObstacles.push({ x: b.position.x, z: b.position.z, radius, type: 'building' })
     }
   }
 
@@ -304,49 +307,96 @@ export function createWorld(scene) {
   return { sellPointMeshes }
 }
 
+// Check if position is on the main road artery (avoid placing objects there)
+function isOnMainRoad(x, z) {
+  // Main NS artery: x in [-9, 9], z in [-85, 115]
+  if (Math.abs(x) < 10 && z > -85 && z < 115) return true
+  // EW cross road: z in [-5, 5], x in [-52, 52]
+  if (Math.abs(z) < 5 && Math.abs(x) < 52) return true
+  // Southern road: x in [-6, 6], z in [-215, -55]
+  if (Math.abs(x) < 7 && z < -55 && z > -215) return true
+  return false
+}
+
 // ─── City Roads ──────────────────────────────────
 function createCityRoads(scene) {
   const roadMat = new THREE.MeshLambertMaterial({ color: 0x555555 })
   const markMat = new THREE.MeshBasicMaterial({ color: 0xFFDD44 })
+  const whiteMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF })
+  const sideWalkMat = new THREE.MeshLambertMaterial({ color: 0x999999 })
 
-  // Main NS road (x=0, z from -55 to 50)
-  const nsRoadGeo = new THREE.PlaneGeometry(6, 110)
-  const nsRoad = new THREE.Mesh(nsRoadGeo, roadMat)
-  nsRoad.rotation.x = -Math.PI / 2
-  nsRoad.position.set(0, 0.04, -2)
-  scene.add(nsRoad)
+  // ── Main artery (north-south, wide: 14 units for two-way traffic) ──
+  // Goes from south of city to zone 2 border
+  const mainRoadGeo = new THREE.PlaneGeometry(14, 200)
+  const mainRoad = new THREE.Mesh(mainRoadGeo, roadMat)
+  mainRoad.rotation.x = -Math.PI / 2
+  mainRoad.position.set(0, 0.04, 15)
+  scene.add(mainRoad)
 
-  // Main EW road (z=0, x from -50 to 50)
-  const ewRoadGeo = new THREE.PlaneGeometry(110, 6)
+  // Center dashed line on main artery
+  for (let z = -55; z <= 85; z += 6) {
+    const markGeo = new THREE.PlaneGeometry(0.25, 3)
+    const mark = new THREE.Mesh(markGeo, markMat)
+    mark.rotation.x = -Math.PI / 2
+    mark.position.set(0, 0.055, z)
+    scene.add(mark)
+  }
+
+  // Side lines (lane edges)
+  for (let z = -55; z <= 85; z += 4) {
+    const lineGeo = new THREE.PlaneGeometry(0.15, 2.5)
+    const lineL = new THREE.Mesh(lineGeo, whiteMat)
+    lineL.rotation.x = -Math.PI / 2
+    lineL.position.set(-6, 0.055, z)
+    scene.add(lineL)
+    const lineR = new THREE.Mesh(lineGeo, whiteMat)
+    lineR.rotation.x = -Math.PI / 2
+    lineR.position.set(6, 0.055, z)
+    scene.add(lineR)
+  }
+
+  // Sidewalks along main artery
+  const sidewalkL = new THREE.Mesh(new THREE.PlaneGeometry(2, 200), sideWalkMat)
+  sidewalkL.rotation.x = -Math.PI / 2
+  sidewalkL.position.set(-8, 0.045, 15)
+  scene.add(sidewalkL)
+  const sidewalkR = new THREE.Mesh(new THREE.PlaneGeometry(2, 200), sideWalkMat)
+  sidewalkR.rotation.x = -Math.PI / 2
+  sidewalkR.position.set(8, 0.045, 15)
+  scene.add(sidewalkR)
+
+  // ── Cross road (east-west) ──
+  const ewRoadGeo = new THREE.PlaneGeometry(100, 8)
   const ewRoad = new THREE.Mesh(ewRoadGeo, roadMat)
   ewRoad.rotation.x = -Math.PI / 2
   ewRoad.position.set(0, 0.04, 0)
   scene.add(ewRoad)
 
-  // Center line markings NS
-  for (let z = -52; z <= 48; z += 8) {
-    const markGeo = new THREE.PlaneGeometry(0.3, 4)
+  // EW center line markings (skip intersection)
+  for (let x = -48; x <= 48; x += 6) {
+    if (Math.abs(x) < 8) continue
+    const markGeo = new THREE.PlaneGeometry(3, 0.25)
     const mark = new THREE.Mesh(markGeo, markMat)
     mark.rotation.x = -Math.PI / 2
-    mark.position.set(0, 0.05, z)
+    mark.position.set(x, 0.055, 0)
     scene.add(mark)
   }
 
-  // Center line markings EW
-  for (let x = -52; x <= 52; x += 8) {
-    const markGeo = new THREE.PlaneGeometry(4, 0.3)
-    const mark = new THREE.Mesh(markGeo, markMat)
-    mark.rotation.x = -Math.PI / 2
-    mark.position.set(x, 0.05, 0)
-    scene.add(mark)
-  }
-
-  // Southern road to Depot Sud
-  const southRoadGeo = new THREE.PlaneGeometry(5, 160)
+  // ── Southern road to Depot Sud (wider) ──
+  const southRoadGeo = new THREE.PlaneGeometry(10, 160)
   const southRoad = new THREE.Mesh(southRoadGeo, roadMat)
   southRoad.rotation.x = -Math.PI / 2
   southRoad.position.set(0, 0.03, -135)
   scene.add(southRoad)
+
+  // Southern road center line
+  for (let z = -210; z <= -55; z += 6) {
+    const markGeo = new THREE.PlaneGeometry(0.25, 3)
+    const mark = new THREE.Mesh(markGeo, markMat)
+    mark.rotation.x = -Math.PI / 2
+    mark.position.set(0, 0.045, z)
+    scene.add(mark)
+  }
 }
 
 function createTree(scene, x, z, seed, isDense = false) {

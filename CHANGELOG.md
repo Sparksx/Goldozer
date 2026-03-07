@@ -3,6 +3,30 @@
 Toutes les modifications notables du projet sont documentées ici.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [0.6.0] - 2026-03-07
+
+### Ajouté
+- Ameliorations par batiments : Entrepot (+capacite), Station-service (+vitesse), Marche (+prix vente), Magasin d'equipement (+rayon collecte)
+- Batiments multi-niveaux : chaque batiment peut etre ameliore 5 fois avec un cout croissant
+- Magasin d'equipement (nouveau batiment fonctionnel)
+- Concession agrandie avec showroom vitré, parking et vehicules exposés
+- Station-service avec pompes multiples (nombre augmente avec le niveau)
+- Artere principale large (14 unites) traversant la ville vers les nouvelles zones
+- Trottoirs et marquages au sol sur l'artere principale
+- Route sud elargie vers le Depot Sud
+
+### Modifié
+- Les ameliorations ne passent plus par un menu mais par la construction de batiments
+- Menu d'amelioration supprime (pause et principal)
+- Bouton mobile d'amelioration supprime
+- Disposition des batiments reorganisee le long de l'artere principale
+- Taille des batiments adaptee a leur usage (concession tres grande, station-service avec espace pompes)
+
+### Corrigé
+- Les pins/marqueurs de batiments se mettent a jour apres chaque livraison partielle
+- Les pancartes de deblocage de zone disparaissent quand la zone est debloquee
+- Les arbres ne poussent plus sur l'artere principale
+
 ## [0.5.0] - 2026-03-07
 
 ### Ajouté

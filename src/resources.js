@@ -315,8 +315,8 @@ function createVeinMarker(scene, vein) {
 
 // ─── Collection ─────────────────────────────────────
 
-export function checkCollection(resources, bulldozerPos, upgrades, scene, maxCollect = Infinity) {
-  const collectRadius = BASE_COLLECT_RADIUS + upgrades.collectRadius * 1.5
+export function checkCollection(resources, bulldozerPos, collectRadiusBonus, scene, maxCollect = Infinity) {
+  const collectRadius = BASE_COLLECT_RADIUS + collectRadiusBonus
   const collected = []
 
   for (let i = resources.length - 1; i >= 0; i--) {

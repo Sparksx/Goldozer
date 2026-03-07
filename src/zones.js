@@ -137,6 +137,7 @@ export function getZoneSaveData() {
 
 const OBSTACLE_RADIUS = 8
 let obstacleGroups = {}
+let chantierGroups = {}
 
 export function getObstacleRadius() {
   return OBSTACLE_RADIUS
@@ -144,6 +145,7 @@ export function getObstacleRadius() {
 
 export function createZoneObstacles(scene) {
   obstacleGroups = {}
+  chantierGroups = {}
 
   for (const zone of zonesState) {
     if (!zone.obstacle) continue
@@ -154,7 +156,10 @@ export function createZoneObstacles(scene) {
       obstacleGroups[zone.id] = createRiver(scene, zone.obstacle.zLine, zone.unlocked)
     }
 
-    createChantierMarker(scene, zone.obstacle.chantierPos, zone.id)
+    // Only create chantier marker if zone is not yet unlocked
+    if (!zone.unlocked) {
+      chantierGroups[zone.id] = createChantierMarker(scene, zone.obstacle.chantierPos, zone.id)
+    }
   }
 
   return obstacleGroups
@@ -162,14 +167,46 @@ export function createZoneObstacles(scene) {
 
 export function removeObstacle(scene, zoneId) {
   const group = obstacleGroups[zoneId]
-  if (!group) return
+  if (group) {
+    scene.remove(group)
+    group.traverse(child => {
+      if (child.geometry) child.geometry.dispose()
+      if (child.material) child.material.dispose()
+    })
+    delete obstacleGroups[zoneId]
+  }
 
-  scene.remove(group)
-  group.traverse(child => {
-    if (child.geometry) child.geometry.dispose()
-    if (child.material) child.material.dispose()
-  })
-  delete obstacleGroups[zoneId]
+  // Also remove the chantier marker/sign when zone is unlocked
+  removeChantierMarker(scene, zoneId)
+}
+
+function removeChantierMarker(scene, zoneId) {
+  const marker = chantierGroups[zoneId]
+  if (marker) {
+    scene.remove(marker)
+    marker.traverse(child => {
+      if (child.geometry) child.geometry.dispose()
+      if (child.material) {
+        if (child.material.map) child.material.map.dispose()
+        child.material.dispose()
+      }
+    })
+    delete chantierGroups[zoneId]
+  }
+}
+
+// Refresh chantier label after partial delivery (fix: pins not updating)
+export function refreshChantierMarker(scene, zoneId) {
+  const zone = getZoneById(zoneId)
+  if (!zone?.obstacle) return
+  // If zone is unlocked, remove the marker entirely
+  if (zone.unlocked) {
+    removeChantierMarker(scene, zoneId)
+    return
+  }
+  // Otherwise rebuild with updated progress
+  removeChantierMarker(scene, zoneId)
+  chantierGroups[zoneId] = createChantierMarker(scene, zone.obstacle.chantierPos, zoneId)
 }
 
 function createRockslide(scene, zLine) {
@@ -313,6 +350,7 @@ function createChantierMarker(scene, pos, zoneId) {
   group.position.set(pos.x, terrainY, pos.z)
   group.userData = { type: 'chantier', zoneId }
   scene.add(group)
+  return group
 }
 
 function createChantierLabel(zone) {
