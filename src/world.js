@@ -319,6 +319,39 @@ function isOnMainRoad(x, z) {
 }
 
 // ─── City Roads ──────────────────────────────────
+
+// Create a road segment strip that follows terrain elevation
+function createRoadStrip(scene, mat, x, zStart, zEnd, width, yOffset) {
+  const segLen = 8
+  for (let z = zStart; z < zEnd; z += segLen) {
+    const segEnd = Math.min(z + segLen, zEnd)
+    const midZ = (z + segEnd) / 2
+    const len = segEnd - z
+    const geo = new THREE.PlaneGeometry(width, len)
+    const mesh = new THREE.Mesh(geo, mat)
+    mesh.rotation.x = -Math.PI / 2
+    const terrainY = getTerrainHeight(x, midZ)
+    mesh.position.set(x, terrainY + yOffset, midZ)
+    scene.add(mesh)
+  }
+}
+
+// Create an east-west road strip that follows terrain elevation
+function createRoadStripEW(scene, mat, z, xStart, xEnd, height, yOffset) {
+  const segLen = 8
+  for (let x = xStart; x < xEnd; x += segLen) {
+    const segEnd = Math.min(x + segLen, xEnd)
+    const midX = (x + segEnd) / 2
+    const len = segEnd - x
+    const geo = new THREE.PlaneGeometry(len, height)
+    const mesh = new THREE.Mesh(geo, mat)
+    mesh.rotation.x = -Math.PI / 2
+    const terrainY = getTerrainHeight(midX, z)
+    mesh.position.set(midX, terrainY + yOffset, z)
+    scene.add(mesh)
+  }
+}
+
 function createCityRoads(scene) {
   const roadMat = new THREE.MeshLambertMaterial({ color: 0x555555 })
   const markMat = new THREE.MeshBasicMaterial({ color: 0xFFDD44 })
@@ -326,51 +359,40 @@ function createCityRoads(scene) {
   const sideWalkMat = new THREE.MeshLambertMaterial({ color: 0x999999 })
 
   // ── Main artery (north-south, wide: 14 units for two-way traffic) ──
-  // Goes from south of city to zone 2 border
-  const mainRoadGeo = new THREE.PlaneGeometry(14, 200)
-  const mainRoad = new THREE.Mesh(mainRoadGeo, roadMat)
-  mainRoad.rotation.x = -Math.PI / 2
-  mainRoad.position.set(0, 0.04, 15)
-  scene.add(mainRoad)
+  // Goes from south of city to zone 2 border (z from -85 to 115)
+  createRoadStrip(scene, roadMat, 0, -85, 115, 14, 0.04)
 
   // Center dashed line on main artery
   for (let z = -55; z <= 85; z += 6) {
     const markGeo = new THREE.PlaneGeometry(0.25, 3)
     const mark = new THREE.Mesh(markGeo, markMat)
     mark.rotation.x = -Math.PI / 2
-    mark.position.set(0, 0.055, z)
+    const terrainY = getTerrainHeight(0, z)
+    mark.position.set(0, terrainY + 0.055, z)
     scene.add(mark)
   }
 
   // Side lines (lane edges)
   for (let z = -55; z <= 85; z += 4) {
     const lineGeo = new THREE.PlaneGeometry(0.15, 2.5)
+    const terrainYL = getTerrainHeight(-6, z)
     const lineL = new THREE.Mesh(lineGeo, whiteMat)
     lineL.rotation.x = -Math.PI / 2
-    lineL.position.set(-6, 0.055, z)
+    lineL.position.set(-6, terrainYL + 0.055, z)
     scene.add(lineL)
+    const terrainYR = getTerrainHeight(6, z)
     const lineR = new THREE.Mesh(lineGeo, whiteMat)
     lineR.rotation.x = -Math.PI / 2
-    lineR.position.set(6, 0.055, z)
+    lineR.position.set(6, terrainYR + 0.055, z)
     scene.add(lineR)
   }
 
   // Sidewalks along main artery
-  const sidewalkL = new THREE.Mesh(new THREE.PlaneGeometry(2, 200), sideWalkMat)
-  sidewalkL.rotation.x = -Math.PI / 2
-  sidewalkL.position.set(-8, 0.045, 15)
-  scene.add(sidewalkL)
-  const sidewalkR = new THREE.Mesh(new THREE.PlaneGeometry(2, 200), sideWalkMat)
-  sidewalkR.rotation.x = -Math.PI / 2
-  sidewalkR.position.set(8, 0.045, 15)
-  scene.add(sidewalkR)
+  createRoadStrip(scene, sideWalkMat, -8, -85, 115, 2, 0.045)
+  createRoadStrip(scene, sideWalkMat, 8, -85, 115, 2, 0.045)
 
   // ── Cross road (east-west) ──
-  const ewRoadGeo = new THREE.PlaneGeometry(100, 8)
-  const ewRoad = new THREE.Mesh(ewRoadGeo, roadMat)
-  ewRoad.rotation.x = -Math.PI / 2
-  ewRoad.position.set(0, 0.04, 0)
-  scene.add(ewRoad)
+  createRoadStripEW(scene, roadMat, 0, -50, 50, 8, 0.04)
 
   // EW center line markings (skip intersection)
   for (let x = -48; x <= 48; x += 6) {
@@ -378,23 +400,21 @@ function createCityRoads(scene) {
     const markGeo = new THREE.PlaneGeometry(3, 0.25)
     const mark = new THREE.Mesh(markGeo, markMat)
     mark.rotation.x = -Math.PI / 2
-    mark.position.set(x, 0.055, 0)
+    const terrainY = getTerrainHeight(x, 0)
+    mark.position.set(x, terrainY + 0.055, 0)
     scene.add(mark)
   }
 
   // ── Southern road to Depot Sud (wider) ──
-  const southRoadGeo = new THREE.PlaneGeometry(10, 160)
-  const southRoad = new THREE.Mesh(southRoadGeo, roadMat)
-  southRoad.rotation.x = -Math.PI / 2
-  southRoad.position.set(0, 0.03, -135)
-  scene.add(southRoad)
+  createRoadStrip(scene, roadMat, 0, -215, -55, 10, 0.03)
 
   // Southern road center line
   for (let z = -210; z <= -55; z += 6) {
     const markGeo = new THREE.PlaneGeometry(0.25, 3)
     const mark = new THREE.Mesh(markGeo, markMat)
     mark.rotation.x = -Math.PI / 2
-    mark.position.set(0, 0.045, z)
+    const terrainY = getTerrainHeight(0, z)
+    mark.position.set(0, terrainY + 0.045, z)
     scene.add(mark)
   }
 }
