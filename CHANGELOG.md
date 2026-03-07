@@ -3,6 +3,17 @@
 Toutes les modifications notables du projet sont documentées ici.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [0.8.0] - 2026-03-07
+
+### Ajouté
+- Modele 3D du bulldozer (asset Kenney via OBJ/MTL)
+- Chargement asynchrone avec placeholder pendant le loading
+- Ombres portees sur le modele 3D
+
+### Modifié
+- Remplacement du bulldozer procedural par le modele 3D externe
+- Refactoring du modelLoader pour gerer correctement les chemins MTL/textures
+
 ## [0.7.1] - 2026-03-07
 
 ### Ajouté

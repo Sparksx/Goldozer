@@ -1,80 +1,49 @@
 import * as THREE from 'three';
 import { getTerrainHeight, isOnMainRoad } from './world.js';
+import { loadModelWithMaterials } from './modelLoader.js';
 
 export function createBulldozer(scene) {
   const group = new THREE.Group();
 
-  // Main body
-  const bodyGeo = new THREE.BoxGeometry(2.5, 1.2, 4);
-  const bodyMat = new THREE.MeshLambertMaterial({ color: 0xf5b731 });
-  const body = new THREE.Mesh(bodyGeo, bodyMat);
-  body.position.y = 1.2;
-  body.castShadow = true;
-  group.add(body);
-
-  // Cabin
-  const cabinGeo = new THREE.BoxGeometry(2, 1.4, 2);
-  const cabinMat = new THREE.MeshLambertMaterial({ color: 0xfcd34d });
-  const cabin = new THREE.Mesh(cabinGeo, cabinMat);
-  cabin.position.set(0, 2.5, -0.3);
-  cabin.castShadow = true;
-  group.add(cabin);
-
-  // Cabin windows
-  const windowMat = new THREE.MeshLambertMaterial({ color: 0x88CCFF });
-  const windowFront = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.8), windowMat);
-  windowFront.position.set(0, 2.6, 0.72);
-  group.add(windowFront);
-
-  // Blade (front)
-  const bladeGeo = new THREE.BoxGeometry(3.5, 1.5, 0.3);
-  const bladeMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
-  const blade = new THREE.Mesh(bladeGeo, bladeMat);
-  blade.position.set(0, 0.75, 2.3);
-  blade.castShadow = true;
-  group.add(blade);
-
-  // Blade side plates
-  const sidePlateGeo = new THREE.BoxGeometry(0.3, 1.5, 0.8);
-  const leftPlate = new THREE.Mesh(sidePlateGeo, bladeMat);
-  leftPlate.position.set(-1.6, 0.75, 1.95);
-  group.add(leftPlate);
-  const rightPlate = new THREE.Mesh(sidePlateGeo, bladeMat);
-  rightPlate.position.set(1.6, 0.75, 1.95);
-  group.add(rightPlate);
-
-  // Tracks (left and right)
-  const trackGeo = new THREE.BoxGeometry(0.6, 0.8, 4.5);
-  const trackMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
-  const leftTrack = new THREE.Mesh(trackGeo, trackMat);
-  leftTrack.position.set(-1.5, 0.4, 0);
-  leftTrack.castShadow = true;
-  group.add(leftTrack);
-  const rightTrack = new THREE.Mesh(trackGeo, trackMat);
-  rightTrack.position.set(1.5, 0.4, 0);
-  rightTrack.castShadow = true;
-  group.add(rightTrack);
-
-  // Track wheels
-  const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.65, 8);
-  const wheelMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
-  [-1.5, 1.5].forEach(xOff => {
-    [-1.5, 0, 1.5].forEach(zOff => {
-      const wheel = new THREE.Mesh(wheelGeo, wheelMat);
-      wheel.rotation.z = Math.PI / 2;
-      wheel.position.set(xOff, 0.4, zOff);
-      group.add(wheel);
-    });
-  });
-
-  // Exhaust pipe
-  const exhaustGeo = new THREE.CylinderGeometry(0.12, 0.15, 1.5, 6);
-  const exhaustMat = new THREE.MeshLambertMaterial({ color: 0x444444 });
-  const exhaust = new THREE.Mesh(exhaustGeo, exhaustMat);
-  exhaust.position.set(-0.8, 3.0, -1.0);
-  group.add(exhaust);
+  // Placeholder box visible until model loads
+  const placeholderGeo = new THREE.BoxGeometry(2.5, 1.5, 4);
+  const placeholderMat = new THREE.MeshLambertMaterial({ color: 0xf5b731, transparent: true, opacity: 0.5 });
+  const placeholder = new THREE.Mesh(placeholderGeo, placeholderMat);
+  placeholder.position.y = 1.2;
+  group.add(placeholder);
 
   scene.add(group);
+
+  // Load the real model asynchronously
+  loadModelWithMaterials('vehicles/bulldozer.obj', 'vehicles/bulldozer.mtl')
+    .then(model => {
+      group.remove(placeholder);
+      placeholderGeo.dispose();
+      placeholderMat.dispose();
+
+      // Scale to match gameplay dimensions (~3.5 wide, ~5 long)
+      // OBJ is 2.25 wide x 1.58 tall x 3.62 deep, scale ~1.6
+      model.scale.set(1.6, 1.6, 1.6);
+
+      // Center horizontally, lift so bottom sits at y=0
+      // OBJ bottom is at y=-0.39, so after scale: -0.39*1.6 = -0.624
+      model.position.set(0, 0.624, 0.33);
+
+      // OBJ faces -Z by default, our game uses +Z as forward
+      model.rotation.y = Math.PI;
+
+      model.traverse(child => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
+
+      group.add(model);
+    })
+    .catch(err => {
+      console.warn('Could not load bulldozer model, keeping placeholder:', err);
+    });
 
   return {
     mesh: group,
