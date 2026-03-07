@@ -28,25 +28,45 @@ export function getCityRadius() {
   return CITY_RADIUS
 }
 
-let groundMesh = null
-let groundRaycaster = null
 let worldObstacles = []
+
+// ─── Pre-computed Heightmap ─────────────────────
+// Stores terrain heights in a grid for O(1) lookup instead of raycasting
+const HEIGHTMAP_RES = 129 // 128+1 to match PlaneGeometry segments
+let heightmap = null
+let heightmapMinX = 0
+let heightmapMinZ = 0
+let heightmapStepX = 1
+let heightmapStepZ = 1
 
 export function getObstacles() {
   return worldObstacles
 }
 
 export function getTerrainHeight(x, z) {
-  if (!groundMesh || !groundRaycaster) return 0
-  groundRaycaster.set(
-    new THREE.Vector3(x, 100, z),
-    new THREE.Vector3(0, -1, 0)
-  )
-  const hits = groundRaycaster.intersectObject(groundMesh)
-  if (hits.length > 0) {
-    return hits[0].point.y
-  }
-  return 0
+  if (!heightmap) return 0
+
+  // Convert world coords to grid indices
+  const gx = (x - heightmapMinX) / heightmapStepX
+  const gz = (z - heightmapMinZ) / heightmapStepZ
+
+  // Clamp to grid bounds
+  const maxIdx = HEIGHTMAP_RES - 1
+  const ix = Math.max(0, Math.min(maxIdx - 1, Math.floor(gx)))
+  const iz = Math.max(0, Math.min(maxIdx - 1, Math.floor(gz)))
+
+  // Bilinear interpolation
+  const fx = Math.max(0, Math.min(1, gx - ix))
+  const fz = Math.max(0, Math.min(1, gz - iz))
+
+  const h00 = heightmap[iz * HEIGHTMAP_RES + ix]
+  const h10 = heightmap[iz * HEIGHTMAP_RES + ix + 1]
+  const h01 = heightmap[(iz + 1) * HEIGHTMAP_RES + ix]
+  const h11 = heightmap[(iz + 1) * HEIGHTMAP_RES + ix + 1]
+
+  const a = h00 + (h10 - h00) * fx
+  const b = h01 + (h11 - h01) * fx
+  return a + (b - a) * fz
 }
 
 export function createWorld(scene) {
@@ -183,11 +203,29 @@ export function createWorld(scene) {
   ground.receiveShadow = true
   scene.add(ground)
 
-  // CRITICAL: force world matrix update so raycaster accounts for rotation
   ground.updateMatrixWorld(true)
 
-  groundMesh = ground
-  groundRaycaster = new THREE.Raycaster()
+  // Build heightmap from PlaneGeometry vertices
+  // PlaneGeometry(W, H, segX, segY) has (segX+1)*(segY+1) vertices
+  // Local X = world X, local Y = -world Z (after rotation.x = -PI/2), local Z = height
+  heightmap = new Float32Array(HEIGHTMAP_RES * HEIGHTMAP_RES)
+  const halfSize = MAP_SIZE
+  heightmapMinX = -halfSize
+  heightmapMinZ = -halfSize
+  heightmapStepX = (halfSize * 2) / (HEIGHTMAP_RES - 1)
+  heightmapStepZ = (halfSize * 2) / (HEIGHTMAP_RES - 1)
+
+  for (let iz = 0; iz < HEIGHTMAP_RES; iz++) {
+    for (let ix = 0; ix < HEIGHTMAP_RES; ix++) {
+      // PlaneGeometry stores vertices row-by-row (top to bottom in local Y)
+      // vertex index: iz * HEIGHTMAP_RES + ix
+      // local Y goes from +halfSize (top) to -halfSize (bottom)
+      // worldZ = -localY, so first row (localY=+halfSize) => worldZ=-halfSize
+      const vi = iz * HEIGHTMAP_RES + ix
+      heightmap[vi] = vertices.getZ(vi) // Z holds the noise/height
+    }
+  }
+
   worldObstacles = []
 
   // City roads
@@ -439,31 +477,35 @@ function createCityRoads(scene) {
 
 }
 
+// Shared geometries and materials for trees and rocks (avoid per-instance allocations)
+const sharedTreeTrunkGeo = new THREE.CylinderGeometry(0.3, 0.5, 3, 5)
+const sharedTreeTrunkMat = new THREE.MeshLambertMaterial({ color: 0x8B4513 })
+const sharedTreeFoliageMats = {
+  light: [0x3dba6e, 0x5cc87a, 0x2ea854, 0x45d68a].map(c => new THREE.MeshLambertMaterial({ color: c })),
+  dense: [0x2d7a3e, 0x1f6830, 0x256b38, 0x347d45].map(c => new THREE.MeshLambertMaterial({ color: c })),
+}
+const sharedRockMats = [0x888888, 0x999999, 0x777777, 0xaaaaaa].map(c => new THREE.MeshLambertMaterial({ color: c }))
+
 function createTree(scene, x, z, seed, isDense = false) {
   const group = new THREE.Group()
 
-  const trunkGeo = new THREE.CylinderGeometry(0.3, 0.5, 3, 5)
-  const trunkMat = new THREE.MeshLambertMaterial({ color: 0x8B4513 })
-  const trunk = new THREE.Mesh(trunkGeo, trunkMat)
+  const trunk = new THREE.Mesh(sharedTreeTrunkGeo, sharedTreeTrunkMat)
   trunk.position.y = 1.5
   trunk.castShadow = true
   group.add(trunk)
 
   const scale = 0.8 + seededRandom(seed + 999) * 0.6
-  const treeColors = isDense
-    ? [0x2d7a3e, 0x1f6830, 0x256b38, 0x347d45]
-    : [0x3dba6e, 0x5cc87a, 0x2ea854, 0x45d68a]
-  const color = treeColors[Math.floor(seededRandom(seed + 888) * treeColors.length)]
+  const mats = isDense ? sharedTreeFoliageMats.dense : sharedTreeFoliageMats.light
+  const mat = mats[Math.floor(seededRandom(seed + 888) * mats.length)]
 
   const foliageGeo1 = new THREE.ConeGeometry(2.5 * scale, 3, 6)
-  const foliageMat = new THREE.MeshLambertMaterial({ color })
-  const foliage1 = new THREE.Mesh(foliageGeo1, foliageMat)
+  const foliage1 = new THREE.Mesh(foliageGeo1, mat)
   foliage1.position.y = 4
   foliage1.castShadow = true
   group.add(foliage1)
 
   const foliageGeo2 = new THREE.ConeGeometry(2 * scale, 2.5, 6)
-  const foliage2 = new THREE.Mesh(foliageGeo2, foliageMat)
+  const foliage2 = new THREE.Mesh(foliageGeo2, mat)
   foliage2.position.y = 5.5
   foliage2.castShadow = true
   group.add(foliage2)
@@ -478,9 +520,7 @@ function createTree(scene, x, z, seed, isDense = false) {
 function createRock(scene, x, z, seed) {
   const size = 0.5 + seededRandom(seed + 777) * 1.5
   const geo = new THREE.DodecahedronGeometry(size, 0)
-  const rockColors = [0x888888, 0x999999, 0x777777, 0xaaaaaa]
-  const color = rockColors[Math.floor(seededRandom(seed + 666) * rockColors.length)]
-  const mat = new THREE.MeshLambertMaterial({ color })
+  const mat = sharedRockMats[Math.floor(seededRandom(seed + 666) * sharedRockMats.length)]
   const rock = new THREE.Mesh(geo, mat)
   const terrainY = getTerrainHeight(x, z)
   rock.position.set(x, terrainY + size * 0.4, z)

@@ -21,6 +21,16 @@ import { createBuildingsState, upgradePlotToBuilding, getBuildingById, refreshBu
 import { checkDeliveryProximity, canDeliverTo, performDelivery } from './delivery.js'
 import { t } from './i18n.js'
 
+// ─── WebGL Support Check ────────────────────────
+if (!document.createElement('canvas').getContext('webgl2') &&
+    !document.createElement('canvas').getContext('webgl')) {
+  document.getElementById('game-container').innerHTML =
+    '<div style="color:#fff;text-align:center;padding:2em;font-family:sans-serif">' +
+    '<h2>WebGL non supporté</h2>' +
+    '<p>Votre navigateur ne supporte pas WebGL. Veuillez utiliser un navigateur récent (Chrome, Firefox, Safari, Edge).</p></div>'
+  throw new Error('WebGL not supported')
+}
+
 // ─── Three.js Setup ──────────────────────────────
 const renderer = new THREE.WebGLRenderer({ antialias: true })
 renderer.setSize(window.innerWidth, window.innerHeight)

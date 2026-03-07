@@ -7,53 +7,53 @@ Trié par ordre d'importance : impact sur l'expérience joueur, stabilité et gr
 
 ## P0 — Critique (bugs actifs, crashs, fuites)
 
-- [ ] **Fuite mémoire au redémarrage** — `startGame()` vide la scène (`scene.remove`) sans appeler `geometry.dispose()` / `material.dispose()` sur les objets retirés. Chaque "Nouvelle partie" fuit l'intégralité des géométries/matériaux/textures du monde précédent. Le jeu va ralentir puis crasher après quelques restarts.
+- [x] **Fuite mémoire au redémarrage** — `startGame()` vide la scène (`scene.remove`) sans appeler `geometry.dispose()` / `material.dispose()` sur les objets retirés. Chaque "Nouvelle partie" fuit l'intégralité des géométries/matériaux/textures du monde précédent. Le jeu va ralentir puis crasher après quelques restarts.
   - Fichiers : `src/main.js:79-81`
 
-- [ ] **`startGame()` appelé deux fois au chargement** — Quand il y a une sauvegarde, `startGame()` est appelé à la ligne 104, puis potentiellement à nouveau via `onStartGame` depuis le menu. Les objets du premier appel ne sont pas correctement nettoyés → double fuite mémoire dès le lancement.
+- [x] **`startGame()` appelé deux fois au chargement** — Quand il y a une sauvegarde, `startGame()` est appelé à la ligne 104, puis potentiellement à nouveau via `onStartGame` depuis le menu. Les objets du premier appel ne sont pas correctement nettoyés → double fuite mémoire dès le lancement.
   - Fichiers : `src/main.js:103-107`
 
-- [ ] **Tableau `resources` jamais nettoyé** — Les anciens objets resource restent en mémoire entre les parties. Les ressources collectées (`.collected = true`) restent dans le tableau et sont itérées chaque frame inutilement, dégradant les performances progressivement.
+- [x] **Tableau `resources` jamais nettoyé** — Les anciens objets resource restent en mémoire entre les parties. Les ressources collectées (`.collected = true`) restent dans le tableau et sont itérées chaque frame inutilement, dégradant les performances progressivement.
   - Fichiers : `src/main.js:48,92-94`, `src/resources.js:322`
 
-- [ ] **`collectedIds` grandit indéfiniment** — Les IDs de ressources récoltées sont accumulés sans limite dans `state.collectedIds` et sauvegardés en base64 dans localStorage. Après des heures de jeu, ce tableau peut atteindre des milliers d'entrées, ralentissant la sauvegarde et risquant de saturer localStorage (~5 Mo max).
+- [x] **`collectedIds` grandit indéfiniment** — Les IDs de ressources récoltées sont accumulés sans limite dans `state.collectedIds` et sauvegardés en base64 dans localStorage. Après des heures de jeu, ce tableau peut atteindre des milliers d'entrées, ralentissant la sauvegarde et risquant de saturer localStorage (~5 Mo max).
   - Fichiers : `src/main.js:201`, `src/economy.js:99-107`
 
-- [ ] **Pas de gestion de perte du contexte WebGL** — Si le contexte WebGL est perdu (`webglcontextlost` — courant sur mobile), le jeu crash silencieusement sans feedback ni tentative de récupération.
+- [x] **Pas de gestion de perte du contexte WebGL** — Si le contexte WebGL est perdu (`webglcontextlost` — courant sur mobile), le jeu crash silencieusement sans feedback ni tentative de récupération.
   - Fichiers : `src/main.js:25-30`
 
 ---
 
 ## P1 — Important (perf visible, bugs UX, stabilité)
 
-- [ ] **Raycaster pour la hauteur du terrain** — Chaque appel à `getTerrainHeight()` lance un raycast sur le mesh du sol (128×128 vertices). Appelé des dizaines de fois par frame et des centaines de fois au chargement. Remplacer par un tableau de hauteurs pré-calculé serait 100x plus rapide.
+- [x] **Raycaster pour la hauteur du terrain** — Chaque appel à `getTerrainHeight()` lance un raycast sur le mesh du sol (128×128 vertices). Appelé des dizaines de fois par frame et des centaines de fois au chargement. Remplacer par un tableau de hauteurs pré-calculé serait 100x plus rapide.
   - Fichiers : `src/world.js:39-49`
 
-- [ ] **`persistState()` appelé à chaque collecte de ressource** — Chaque nugget ramassé déclenche JSON.stringify + base64 encode + écriture localStorage. Sur un cluster dense, cela peut être 30+ écritures/seconde → micro-freezes visibles. Debouncer (1 fois/seconde max).
+- [x] **`persistState()` appelé à chaque collecte de ressource** — Chaque nugget ramassé déclenche JSON.stringify + base64 encode + écriture localStorage. Sur un cluster dense, cela peut être 30+ écritures/seconde → micro-freezes visibles. Debouncer (1 fois/seconde max).
   - Fichiers : `src/main.js:205`
 
-- [ ] **`collectedIds.includes()` en O(n)** — Chaque spawn de ressource appelle `collectedIds.includes(rid)` dans une boucle, donnant une complexité O(n×m). Devrait utiliser un `Set`. Impact croissant avec le temps de jeu.
+- [x] **`collectedIds.includes()` en O(n)** — Chaque spawn de ressource appelle `collectedIds.includes(rid)` dans une boucle, donnant une complexité O(n×m). Devrait utiliser un `Set`. Impact croissant avec le temps de jeu.
   - Fichiers : `src/resources.js:108,125,140,157`
 
-- [ ] **Centaines de géométries/matériaux non partagés** — Chaque arbre, rocher, marqueur de route crée ses propres `Geometry` et `Material`. Utiliser `InstancedMesh` ou partager les géométries réduirait le nombre de draw calls de ~300 à ~10.
+- [x] **Centaines de géométries/matériaux non partagés** — Chaque arbre, rocher, marqueur de route crée ses propres `Geometry` et `Material`. Utiliser `InstancedMesh` ou partager les géométries réduirait le nombre de draw calls de ~300 à ~10.
   - Fichiers : `src/world.js:442-496`
 
-- [ ] **`CanvasTexture` fuitées à chaque livraison** — `refreshBuildingMarker` et `refreshChantierMarker` recréent un canvas + texture à chaque livraison partielle sans disposer les anciens. Fuite mémoire GPU progressive.
+- [x] **`CanvasTexture` fuitées à chaque livraison** — `refreshBuildingMarker` et `refreshChantierMarker` recréent un canvas + texture à chaque livraison partielle sans disposer les anciens. Fuite mémoire GPU progressive.
   - Fichiers : `src/buildings.js:403-480`, `src/zones.js:356-421`
 
-- [ ] **Création de `Vector3` dans la boucle de rendu** — `updateCamera()` crée 3 `new THREE.Vector3()` à chaque frame → pression sur le GC, micro-stutters possibles.
+- [x] **Création de `Vector3` dans la boucle de rendu** — `updateCamera()` crée 3 `new THREE.Vector3()` à chaque frame → pression sur le GC, micro-stutters possibles.
   - Fichiers : `src/bulldozer.js:117-138`
 
-- [ ] **Notifications empilables** — `showNotification()` utilise un `setTimeout` fixe. Si plusieurs notifications arrivent rapidement (vente + zone débloquée), elles se superposent et le premier timer cache la deuxième prématurément.
+- [x] **Notifications empilables** — `showNotification()` utilise un `setTimeout` fixe. Si plusieurs notifications arrivent rapidement (vente + zone débloquée), elles se superposent et le premier timer cache la deuxième prématurément.
   - Fichiers : `src/ui.js:112-122`
 
-- [ ] **Pas de validation de la sauvegarde** — `loadGame()` fait confiance au JSON décodé sans valider la structure. Une sauvegarde corrompue peut provoquer des erreurs runtime (ex: `bucket` n'est pas un objet, `money` est NaN).
+- [x] **Pas de validation de la sauvegarde** — `loadGame()` fait confiance au JSON décodé sans valider la structure. Une sauvegarde corrompue peut provoquer des erreurs runtime (ex: `bucket` n'est pas un objet, `money` est NaN).
   - Fichiers : `src/save.js:13-22`, `src/economy.js:40-69`
 
-- [ ] **Modules avec état global mutable non réinitialisé** — `zonesState`, `buildingsState`, `veinStates`, `worldObstacles` sont des variables de module modifiées en place. Pas de réinitialisation propre entre les parties → état fantôme de la partie précédente.
+- [x] **Modules avec état global mutable non réinitialisé** — `zonesState`, `buildingsState`, `veinStates`, `worldObstacles` sont des variables de module modifiées en place. Pas de réinitialisation propre entre les parties → état fantôme de la partie précédente.
   - Fichiers : `src/zones.js:52`, `src/buildings.js:73`, `src/resources.js:176`, `src/world.js:33`
 
-- [ ] **Pas de fallback WebGL** — Si WebGL n'est pas supporté, la page affiche un div vide noir sans message d'erreur. L'utilisateur ne sait pas pourquoi rien ne s'affiche.
+- [x] **Pas de fallback WebGL** — Si WebGL n'est pas supporté, la page affiche un div vide noir sans message d'erreur. L'utilisateur ne sait pas pourquoi rien ne s'affiche.
   - Fichiers : `src/main.js:25`
 
 ---

@@ -109,15 +109,18 @@ export function showDeliveryPrompt(show, target = null) {
   }
 }
 
+let notificationTimer = null
 export function showNotification(message, duration = 3000) {
   const el = document.getElementById('hud-notification')
   if (!el) return
+  if (notificationTimer) clearTimeout(notificationTimer)
   el.textContent = message
   el.classList.remove('hidden')
   el.classList.add('notification-show')
-  setTimeout(() => {
+  notificationTimer = setTimeout(() => {
     el.classList.add('hidden')
     el.classList.remove('notification-show')
+    notificationTimer = null
   }, duration)
 }
 
@@ -341,6 +344,18 @@ function showChangelog() {
 
 function getChangelogHTML() {
   return `
+    <div class="changelog-entry">
+      <h3>v0.9.0 <span class="changelog-date">2026-03-07</span></h3>
+      <ul>
+        <li>Perf: heightmap pre-calcule (remplace le raycaster terrain)</li>
+        <li>Perf: geometries/materiaux partages pour arbres et rochers</li>
+        <li>Perf: sauvegarde debounced (max 1x/sec)</li>
+        <li>Perf: Vector3 pre-alloues dans la camera</li>
+        <li>Fix: notifications empilables (clearTimeout)</li>
+        <li>Fix: validation des sauvegardes corrompues</li>
+        <li>Ajout: message fallback si WebGL non supporte</li>
+      </ul>
+    </div>
     <div class="changelog-entry">
       <h3>v0.8.2 <span class="changelog-date">2026-03-07</span></h3>
       <ul>

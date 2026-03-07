@@ -95,7 +95,12 @@ export function addToBucket(state, type, count) {
   return added
 }
 
+let persistTimer = null
 export function persistState(state) {
+  if (persistTimer) return
+  persistTimer = setTimeout(() => {
+    persistTimer = null
+  }, 1000)
   saveGame({
     money: state.money,
     bucket: state.bucket,

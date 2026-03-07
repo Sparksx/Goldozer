@@ -3,6 +3,19 @@
 Toutes les modifications notables du projet sont documentées ici.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [0.9.0] - 2026-03-07
+
+### Modifié
+- Terrain : remplacement du raycaster par un heightmap pre-calcule avec interpolation bilineaire (performances +++)
+- Sauvegarde debounced : persistState() limite a 1 appel/seconde pour reduire les ecritures localStorage
+- Arbres et rochers partagent geometries et materiaux (reduction massive des allocations GPU)
+- Notifications empilables corrigees : clearTimeout avant chaque nouvelle notification
+- Camera : Vector3 pre-alloues dans updateCamera() pour eviter la pression GC
+
+### Ajouté
+- Validation des donnees de sauvegarde dans loadGame() (protection contre les saves corrompues)
+- Message de fallback si WebGL n'est pas supporte par le navigateur
+
 ## [0.8.2] - 2026-03-07
 
 ### Modifié

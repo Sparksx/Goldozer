@@ -113,27 +113,33 @@ export function updateBulldozer(bulldozer, input, delta, speedBonus, mapSize) {
   bulldozer.mesh.rotation.y = bulldozer.rotation;
 }
 
+// Pre-allocated vectors to avoid GC pressure in the game loop
+const _camOffset = new THREE.Vector3();
+const _camTarget = new THREE.Vector3();
+const _camLookAhead = new THREE.Vector3();
+const _yAxis = new THREE.Vector3(0, 1, 0);
+
 export function updateCamera(camera, bulldozer) {
   // Camera behind and above (like a balloon on a string)
-  const offset = new THREE.Vector3(0, 12, -18);
-  offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), bulldozer.rotation);
+  _camOffset.set(0, 12, -18);
+  _camOffset.applyAxisAngle(_yAxis, bulldozer.rotation);
 
-  const targetPos = new THREE.Vector3(
-    bulldozer.mesh.position.x + offset.x,
-    bulldozer.mesh.position.y + offset.y,
-    bulldozer.mesh.position.z + offset.z
+  _camTarget.set(
+    bulldozer.mesh.position.x + _camOffset.x,
+    bulldozer.mesh.position.y + _camOffset.y,
+    bulldozer.mesh.position.z + _camOffset.z
   );
 
   // Smooth follow with slight lag (balloon on string feel)
-  camera.position.lerp(targetPos, 0.04);
+  camera.position.lerp(_camTarget, 0.04);
 
   // Look ahead of the bulldozer so player can see what's coming
-  const lookAhead = new THREE.Vector3(0, 0, 8);
-  lookAhead.applyAxisAngle(new THREE.Vector3(0, 1, 0), bulldozer.rotation);
+  _camLookAhead.set(0, 0, 8);
+  _camLookAhead.applyAxisAngle(_yAxis, bulldozer.rotation);
 
   camera.lookAt(
-    bulldozer.mesh.position.x + lookAhead.x,
+    bulldozer.mesh.position.x + _camLookAhead.x,
     bulldozer.mesh.position.y + 2,
-    bulldozer.mesh.position.z + lookAhead.z
+    bulldozer.mesh.position.z + _camLookAhead.z
   );
 }
