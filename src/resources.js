@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { getTerrainHeight } from './world.js'
 
 const BASE_COLLECT_RADIUS = 4
 
@@ -153,14 +154,15 @@ function createResourceMesh(scene, x, z, type, seed, isMountain = false) {
 
   const mat = new THREE.MeshLambertMaterial({ color: def.color })
   const mesh = new THREE.Mesh(geo, mat)
-  mesh.position.set(x, size * 0.5, z)
+  const terrainY = getTerrainHeight(x, z)
+  mesh.position.set(x, terrainY + size * 0.5, z)
   mesh.castShadow = true
   mesh.rotation.y = seededRandom(seed + 33) * Math.PI * 2
 
   if (type === 'bois') {
     // Logs lie on their side
     mesh.rotation.z = Math.PI / 2
-    mesh.position.y = size * 0.35
+    mesh.position.y = terrainY + size * 0.35
   }
 
   scene.add(mesh)

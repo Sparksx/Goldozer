@@ -109,7 +109,8 @@ export function createWorld(scene) {
     const patchMat = new THREE.MeshLambertMaterial({ color: 0xc9a96e })
     const patch = new THREE.Mesh(patchGeo, patchMat)
     patch.rotation.x = -Math.PI / 2
-    patch.position.set(px, 0.02, pz)
+    const patchY = getTerrainHeight(px, pz)
+    patch.position.set(px, patchY + 0.02, pz)
     scene.add(patch)
   }
 
@@ -223,7 +224,8 @@ function createTree(scene, x, z, seed, isDense = false) {
   foliage2.castShadow = true
   group.add(foliage2)
 
-  group.position.set(x, 0, z)
+  const terrainY = getTerrainHeight(x, z)
+  group.position.set(x, terrainY, z)
   scene.add(group)
 }
 
@@ -234,7 +236,8 @@ function createRock(scene, x, z, seed) {
   const color = colors[Math.floor(seededRandom(seed + 666) * colors.length)]
   const mat = new THREE.MeshLambertMaterial({ color })
   const rock = new THREE.Mesh(geo, mat)
-  rock.position.set(x, size * 0.4, z)
+  const terrainY = getTerrainHeight(x, z)
+  rock.position.set(x, terrainY + size * 0.4, z)
   rock.rotation.set(
     seededRandom(seed + 555) * Math.PI,
     seededRandom(seed + 444) * Math.PI,
@@ -291,7 +294,8 @@ function createSellPoint(scene, x, z) {
   ring.position.y = 0.05
   group.add(ring)
 
-  group.position.set(x, 0, z)
+  const terrainY = getTerrainHeight(x, z)
+  group.position.set(x, terrainY, z)
   scene.add(group)
   return group
 }

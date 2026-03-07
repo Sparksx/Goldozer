@@ -1,4 +1,7 @@
 import * as THREE from 'three'
+import { getTerrainHeight } from './world.js'
+import { t } from './i18n.js'
+import { getResourceTypes } from './resources.js'
 
 // ─── Zone Definitions ───────────────────────────────
 // Map divided into 3 zones along Z axis
@@ -177,26 +180,33 @@ export function removeObstacle(scene, zoneId) {
 function createRockslide(scene, zLine) {
   const group = new THREE.Group()
 
-  // Row of large boulders blocking the path
+  // Row of large boulders blocking the path across the full map width
   const rockMat = new THREE.MeshLambertMaterial({ color: 0x7a7a7a })
   const rockMat2 = new THREE.MeshLambertMaterial({ color: 0x666666 })
 
+  // Dense central boulders
   for (let i = -12; i <= 12; i += 3) {
     const size = 1.5 + Math.abs(Math.sin(i * 1.3)) * 2
     const geo = new THREE.DodecahedronGeometry(size, 0)
     const rock = new THREE.Mesh(geo, i % 2 === 0 ? rockMat : rockMat2)
-    rock.position.set(i * 3.5, size * 0.6, zLine + Math.sin(i) * 2)
+    const rx = i * 3.5
+    const rz = zLine + Math.sin(i) * 2
+    const ty = getTerrainHeight(rx, rz)
+    rock.position.set(rx, ty + size * 0.6, rz)
     rock.rotation.set(i * 0.3, i * 0.7, 0)
     rock.castShadow = true
     group.add(rock)
   }
 
-  // Extend to cover full map width
-  for (let i = -60; i <= 60; i += 8) {
+  // Extend to cover full map width (-200 to 200)
+  for (let i = -200; i <= 200; i += 5) {
     const size = 1 + Math.abs(Math.sin(i * 0.7)) * 1.5
     const geo = new THREE.DodecahedronGeometry(size, 0)
-    const rock = new THREE.Mesh(geo, rockMat)
-    rock.position.set(i, size * 0.5, zLine + Math.sin(i * 0.3) * 3)
+    const rock = new THREE.Mesh(geo, i % 3 === 0 ? rockMat2 : rockMat)
+    const rx = i
+    const rz = zLine + Math.sin(i * 0.3) * 3
+    const ty = getTerrainHeight(rx, rz)
+    rock.position.set(rx, ty + size * 0.5, rz)
     rock.rotation.set(i * 0.2, i * 0.5, 0)
     rock.castShadow = true
     group.add(rock)
@@ -210,7 +220,7 @@ function createRiver(scene, zLine, bridgeBuilt) {
   const group = new THREE.Group()
 
   // River water surface
-  const riverGeo = new THREE.PlaneGeometry(400, 12, 1, 1)
+  const riverGeo = new THREE.PlaneGeometry(420, 12, 1, 1)
   const riverMat = new THREE.MeshLambertMaterial({
     color: 0x4a90d9,
     transparent: true,
@@ -223,7 +233,7 @@ function createRiver(scene, zLine, bridgeBuilt) {
 
   // River banks
   const bankMat = new THREE.MeshLambertMaterial({ color: 0x8B7355 })
-  const bankGeo = new THREE.BoxGeometry(400, 0.5, 2)
+  const bankGeo = new THREE.BoxGeometry(420, 0.5, 2)
   const bankNorth = new THREE.Mesh(bankGeo, bankMat)
   bankNorth.position.set(0, 0.25, zLine + 7)
   group.add(bankNorth)
@@ -257,6 +267,7 @@ function createRiver(scene, zLine, bridgeBuilt) {
 
 function createChantierMarker(scene, pos, zoneId) {
   const group = new THREE.Group()
+  const zone = zonesState.find(z => z.id === zoneId)
 
   // Sign post
   const poleGeo = new THREE.CylinderGeometry(0.15, 0.15, 5, 6)
@@ -296,9 +307,108 @@ function createChantierMarker(scene, pos, zoneId) {
   ring.position.y = 0.05
   group.add(ring)
 
-  group.position.set(pos.x, 0, pos.z)
+  // Floating 3D marker with chantier name and required resources
+  if (zone?.obstacle && !zone.unlocked) {
+    const marker = createChantierLabel(zone)
+    marker.position.y = 8
+    group.add(marker)
+  }
+
+  const terrainY = getTerrainHeight(pos.x, pos.z)
+  group.position.set(pos.x, terrainY, pos.z)
   group.userData = { type: 'chantier', zoneId }
   scene.add(group)
+}
+
+function createChantierLabel(zone) {
+  const group = new THREE.Group()
+  const resTypes = getResourceTypes()
+  const obs = zone.obstacle
+
+  // Determine chantier name
+  const nameKey = obs.type === 'rockslide' ? 'rockslideChantier' : 'riverChantier'
+  const name = t(nameKey)
+  const emoji = resTypes[obs.requiredResource]?.emoji || ''
+  const costLine = `${emoji} ${t(obs.requiredResource)} ${obs.delivered}/${obs.requiredAmount}`
+
+  // Create canvas texture
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  canvas.width = 512
+  canvas.height = 200
+
+  // Background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'
+  roundRect(ctx, 10, 10, 492, 180, 20)
+  ctx.fill()
+
+  // Border
+  ctx.strokeStyle = '#FF8C00'
+  ctx.lineWidth = 4
+  roundRect(ctx, 10, 10, 492, 180, 20)
+  ctx.stroke()
+
+  // Title
+  ctx.fillStyle = '#FF8C00'
+  ctx.font = 'bold 42px Arial'
+  ctx.textAlign = 'center'
+  ctx.fillText(name, 256, 70)
+
+  // Divider
+  ctx.strokeStyle = '#FF8C0088'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(60, 85)
+  ctx.lineTo(452, 85)
+  ctx.stroke()
+
+  // Resource cost
+  ctx.font = '36px Arial'
+  ctx.fillStyle = '#FFFFFF'
+  ctx.fillText(costLine, 256, 130)
+
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.needsUpdate = true
+
+  const spriteMat = new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true,
+    depthTest: false,
+  })
+  const sprite = new THREE.Sprite(spriteMat)
+  sprite.scale.set(8, 3.2, 1)
+  group.add(sprite)
+
+  // Arrow pointing down
+  const arrowGeo = new THREE.ConeGeometry(0.4, 1.2, 4)
+  const arrowMat = new THREE.MeshBasicMaterial({ color: 0xFF8C00 })
+  const arrow = new THREE.Mesh(arrowGeo, arrowMat)
+  arrow.rotation.x = Math.PI
+  arrow.position.y = -2
+  group.add(arrow)
+
+  // Vertical pole from arrow to ground
+  const poleGeo = new THREE.CylinderGeometry(0.06, 0.06, 4, 4)
+  const poleMat = new THREE.MeshBasicMaterial({ color: 0xFF8C00, transparent: true, opacity: 0.5 })
+  const poleMesh = new THREE.Mesh(poleGeo, poleMat)
+  poleMesh.position.y = -4.5
+  group.add(poleMesh)
+
+  return group
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + w - r, y)
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r)
+  ctx.lineTo(x + w, y + h - r)
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
+  ctx.lineTo(x + r, y + h)
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r)
+  ctx.lineTo(x, y + r)
+  ctx.quadraticCurveTo(x, y, x + r, y)
+  ctx.closePath()
 }
 
 // ─── Collision with zone barriers ───────────────────
