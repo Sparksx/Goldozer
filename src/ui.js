@@ -1,6 +1,7 @@
 import { t, setLanguage, getLanguage, getAvailableLanguages } from './i18n.js'
 import { getUpgradeDefs, getUpgradeCost, getMaxCapacity, buyUpgrade, getPricePerUnit, getTotalInBucket } from './economy.js'
 import { hasSave, deleteSave } from './save.js'
+import { VERSION } from './version.js'
 
 let isMobile = false
 let onStartGame = null
@@ -369,14 +370,72 @@ function showCredits() {
   title.className = 'menu-title'
   overlay.appendChild(title)
 
+  const versionText = document.createElement('p')
+  versionText.textContent = `v${VERSION}`
+  versionText.className = 'credits-version'
+  overlay.appendChild(versionText)
+
   const text = document.createElement('p')
   text.textContent = t('creditsText')
   text.className = 'credits-text'
   overlay.appendChild(text)
 
+  addMenuButton(overlay, `📋 ${t('changelog')}`, () => {
+    showChangelog()
+  })
+
   addMenuButton(overlay, `⬅️ ${t('back')}`, () => {
     showPauseMenu()
   })
+}
+
+// ─── Changelog ───────────────────────────────────
+function showChangelog() {
+  hideAllOverlays()
+  const overlay = createOverlay('changelog')
+  const title = document.createElement('h1')
+  title.textContent = `📋 ${t('changelog')}`
+  title.className = 'menu-title'
+  overlay.appendChild(title)
+
+  const content = document.createElement('div')
+  content.className = 'changelog-content'
+  content.innerHTML = getChangelogHTML()
+  overlay.appendChild(content)
+
+  addMenuButton(overlay, `⬅️ ${t('back')}`, () => {
+    showCredits()
+  })
+}
+
+function getChangelogHTML() {
+  return `
+    <div class="changelog-entry">
+      <h3>v0.3.0 <span class="changelog-date">2026-03-07</span></h3>
+      <ul>
+        <li>Système de changelog et versioning</li>
+        <li>Affichage version et changelog dans le jeu</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
+      <h3>v0.2.0</h3>
+      <ul>
+        <li>Livraison de ressources et bâtiments</li>
+        <li>Zones multiples avec déblocage</li>
+        <li>Ressources : terre, pierre, bois</li>
+        <li>Internationalisation FR/EN</li>
+        <li>Sauvegarde LocalStorage</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
+      <h3>v0.1.0</h3>
+      <ul>
+        <li>Bulldozer 3D, monde procédural</li>
+        <li>Collecte, vente, améliorations</li>
+        <li>Support mobile</li>
+      </ul>
+    </div>
+  `
 }
 
 // ─── Mobile Joystick (Dynamic) ───────────────────

@@ -36,9 +36,11 @@ src/
 ├── ui.js          # HUD, menus (pause, upgrades, settings), mobile UI
 ├── i18n.js        # Internationalization (French/English)
 ├── save.js        # LocalStorage persistence (base64 encoded)
+├── version.js     # Numéro de version (source unique)
 └── style.css      # All styling
 index.html         # Entry HTML
 vite.config.js     # Vite config (base: /Goldozer/)
+CHANGELOG.md       # Historique des changements
 ```
 
 ## Architecture
@@ -80,6 +82,32 @@ Two languages supported: French (`fr`) and English (`en`). Translation keys are 
 ## Persistence
 
 Game state is saved to LocalStorage as base64-encoded JSON via `src/save.js`. Saved data includes money, bucket contents, upgrade levels, bulldozer position/rotation, and collected resource IDs.
+
+## Versioning & Changelog
+
+Le projet utilise un système de versioning sémantique (semver) et un changelog.
+
+### Règles obligatoires pour Claude
+
+**À chaque modification du code, Claude DOIT :**
+
+1. **Incrémenter la version** dans `src/version.js` :
+   - **PATCH** (0.3.X) : bugfix, correction mineure
+   - **MINOR** (0.X.0) : nouvelle fonctionnalité, amélioration notable
+   - **MAJOR** (X.0.0) : changement majeur, breaking change
+
+2. **Mettre à jour `CHANGELOG.md`** : ajouter une entrée datée dans la section `[Unreleased]` ou créer une nouvelle section versionnée avec les catégories appropriées :
+   - `### Ajouté` — nouvelles fonctionnalités
+   - `### Modifié` — changements de fonctionnalités existantes
+   - `### Corrigé` — corrections de bugs
+   - `### Supprimé` — fonctionnalités retirées
+
+3. **Mettre à jour le changelog dans `src/ui.js`** : la fonction `getChangelogHTML()` doit refléter les changements pour que les joueurs puissent les voir dans le menu Crédits > Changelog du jeu.
+
+### Fichiers concernés
+- `src/version.js` — source unique du numéro de version (exporté comme `VERSION`)
+- `CHANGELOG.md` — historique complet au format Keep a Changelog
+- `src/ui.js` — `getChangelogHTML()` pour l'affichage in-game
 
 ## Deployment
 
