@@ -3,6 +3,13 @@
 Toutes les modifications notables du projet sont documentées ici.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [0.8.1] - 2026-03-07
+
+### Corrigé
+- Point de vente et station-service ne se superposent plus (depot deplace en centre-ville)
+- Texte de l'entrepot corrige : affiche +10 capacite (au lieu de +5)
+- Couts de construction progressifs : terre seule (niv.1), terre+pierre (niv.2), terre+pierre+bois (niv.3+)
+
 ## [0.8.0] - 2026-03-07
 
 ### Ajouté
