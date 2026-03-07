@@ -3,6 +3,17 @@
 Toutes les modifications notables du projet sont documentées ici.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [0.7.0] - 2026-03-07
+
+### Modifié
+- Entrepot et station-service : premier niveau ne coute que de la terre (15)
+- Entrepot donne 10 de capacite par niveau (au lieu de 5)
+- Un seul point de vente en centre-ville (hors de la route)
+
+### Supprimé
+- Depot Sud et route sud supprimés
+- Second point de vente supprimé
+
 ## [0.6.3] - 2026-03-07
 
 ### Ajouté

@@ -342,6 +342,15 @@ function showChangelog() {
 function getChangelogHTML() {
   return `
     <div class="changelog-entry">
+      <h3>v0.7.0 <span class="changelog-date">2026-03-07</span></h3>
+      <ul>
+        <li>Entrepot et station-service : premier niveau ne coute que de la terre (15)</li>
+        <li>Entrepot donne 10 de capacite par niveau</li>
+        <li>Un seul point de vente en centre-ville</li>
+        <li>Suppression du Depot Sud et de la route sud</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
       <h3>v0.6.3 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
         <li>Bonus de vitesse +50% sur les routes</li>

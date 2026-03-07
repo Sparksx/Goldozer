@@ -9,8 +9,7 @@ const CITY_CENTER = { x: 0, z: 0 }
 const CITY_RADIUS = 50
 
 const SELL_POINTS = [
-  { x: 0, z: 0, name: 'Depot Central' },
-  { x: 0, z: -200, name: 'Depot Sud' },
+  { x: 18, z: -10, name: 'Depot Central' },
 ]
 
 export function getMapSize() {
@@ -313,8 +312,6 @@ export function isOnMainRoad(x, z) {
   if (Math.abs(x) < 10 && z > -85 && z < 115) return true
   // EW cross road: z in [-5, 5], x in [-52, 52]
   if (Math.abs(z) < 5 && Math.abs(x) < 52) return true
-  // Southern road: x in [-6, 6], z in [-215, -55]
-  if (Math.abs(x) < 7 && z < -55 && z > -215) return true
   return false
 }
 
@@ -440,17 +437,6 @@ function createCityRoads(scene) {
     scene.add(mark)
   }
 
-  // ── Southern road to Depot Sud (10 units wide, z from -215 to -55) ──
-  createTerrainRoadNS(scene, roadMat, 0, -215, -55, 10, 0.04)
-
-  // Southern road center line
-  for (let z = -210; z <= -55; z += 6) {
-    const markGeo = new THREE.PlaneGeometry(0.25, 3)
-    const mark = new THREE.Mesh(markGeo, markMat)
-    mark.rotation.x = -Math.PI / 2
-    mark.position.set(0, getTerrainHeight(0, z) + 0.06, z)
-    scene.add(mark)
-  }
 }
 
 function createTree(scene, x, z, seed, isDense = false) {
