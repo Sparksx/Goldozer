@@ -107,7 +107,7 @@ if (savedData) {
 }
 
 // ─── Sell Point Proximity ────────────────────────
-const SELL_RADIUS = 10
+const SELL_RADIUS = 12
 
 function checkSellPointProximity() {
   if (!bulldozer) return false
