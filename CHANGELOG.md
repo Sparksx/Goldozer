@@ -3,6 +3,19 @@
 Toutes les modifications notables du projet sont documentées ici.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [0.5.0] - 2026-03-07
+
+### Ajouté
+- Système de collision : le bulldozer ne traverse plus les arbres, rochers et bâtiments
+- Rebond léger lors des collisions pour éviter de rester bloqué contre les obstacles
+- Poussée des pépites de ressources : quand le godet est plein, le bulldozer pousse les pépites au lieu de les ramasser
+- Les pépites poussées roulent visuellement dans la direction du bulldozer
+- Module `src/collision.js` dédié à la gestion des collisions
+
+### Modifié
+- `world.js` enregistre maintenant les positions de tous les obstacles (arbres, rochers, bâtiments, points de vente)
+- Boucle de jeu améliorée avec vérification des collisions après chaque déplacement
+
 ## [0.4.2] - 2026-03-07
 
 ### Corrigé

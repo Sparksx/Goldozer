@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { createWorld, getMapSize, getSellPoints } from './world.js'
+import { createWorld, getMapSize, getSellPoints, getObstacles } from './world.js'
 import { createBulldozer, updateBulldozer, updateCamera } from './bulldozer.js'
 import { spawnResources, checkCollection, spawnVeinResources, updateVeinRespawn } from './resources.js'
 import {
@@ -15,6 +15,7 @@ import {
   hideAllOverlays, isOverlayOpen, isMobileDevice
 } from './ui.js'
 import { createZonesState, clampToAccessibleZone, removeObstacle } from './zones.js'
+import { resolveObstacleCollisions, pushResources } from './collision.js'
 import { createBuildingsState, upgradePlotToBuilding, getBuildingById } from './buildings.js'
 import { checkDeliveryProximity, canDeliverTo, performDelivery } from './delivery.js'
 import { t } from './i18n.js'
@@ -180,6 +181,9 @@ function animate() {
     bulldozer.velocity = 0
   }
 
+  // Check obstacle collisions (trees, rocks, buildings)
+  resolveObstacleCollisions(bulldozer, getObstacles())
+
   // Update camera
   updateCamera(camera, bulldozer)
 
@@ -187,6 +191,12 @@ function animate() {
   const maxCap = getMaxCapacity(state.upgrades)
   const total = getTotalInBucket(state.bucket)
   const canAdd = maxCap - total
+
+  // Push resources when bucket is full
+  if (canAdd <= 0) {
+    pushResources(resources, bulldozer.mesh.position, bulldozer.rotation, bulldozer.velocity, delta)
+  }
+
   const collected = checkCollection(resources, bulldozer.mesh.position, state.upgrades, scene, canAdd)
   if (collected.length > 0) {
     for (const item of collected) {

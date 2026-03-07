@@ -411,6 +411,14 @@ function showChangelog() {
 function getChangelogHTML() {
   return `
     <div class="changelog-entry">
+      <h3>v0.5.0 <span class="changelog-date">2026-03-07</span></h3>
+      <ul>
+        <li>Collisions : le bulldozer rebondit sur les arbres, rochers et bâtiments</li>
+        <li>Godet plein : les pépites sont poussées au lieu d'être ramassées</li>
+        <li>Les pépites poussées roulent visuellement</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
       <h3>v0.4.2 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
         <li>Fix critique : terrain inversé (zones, montagnes, couleurs au mauvais endroit)</li>

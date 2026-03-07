@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { getResourceMountains, getResourceVeins } from './resources.js'
 import { createZoneObstacles } from './zones.js'
-import { createBuildingPlots } from './buildings.js'
+import { createBuildingPlots, getBuildingsState } from './buildings.js'
 
 const MAP_SIZE = 400
 
@@ -31,6 +31,11 @@ export function getCityRadius() {
 
 let groundMesh = null
 let groundRaycaster = null
+let worldObstacles = []
+
+export function getObstacles() {
+  return worldObstacles
+}
 
 export function getTerrainHeight(x, z) {
   if (!groundMesh || !groundRaycaster) return 0
@@ -184,6 +189,7 @@ export function createWorld(scene) {
 
   groundMesh = ground
   groundRaycaster = new THREE.Raycaster()
+  worldObstacles = []
 
   // City roads
   createCityRoads(scene)
@@ -265,6 +271,14 @@ export function createWorld(scene) {
 
   // Building plots
   createBuildingPlots(scene)
+
+  // Register building obstacles
+  const buildings = getBuildingsState()
+  if (buildings) {
+    for (const b of buildings) {
+      worldObstacles.push({ x: b.position.x, z: b.position.z, radius: 4.5, type: 'building' })
+    }
+  }
 
   // Lighting
   const ambientLight = new THREE.AmbientLight(0xfff5e6, 0.65)
@@ -367,6 +381,8 @@ function createTree(scene, x, z, seed, isDense = false) {
   const terrainY = getTerrainHeight(x, z)
   group.position.set(x, terrainY, z)
   scene.add(group)
+
+  worldObstacles.push({ x, z, radius: 1.2, type: 'tree' })
 }
 
 function createRock(scene, x, z, seed) {
@@ -385,6 +401,8 @@ function createRock(scene, x, z, seed) {
   )
   rock.castShadow = true
   scene.add(rock)
+
+  worldObstacles.push({ x, z, radius: size * 0.8, type: 'rock' })
 }
 
 function createSellPoint(scene, x, z) {
@@ -437,6 +455,9 @@ function createSellPoint(scene, x, z) {
   const terrainY = getTerrainHeight(x, z)
   group.position.set(x, terrainY, z)
   scene.add(group)
+
+  worldObstacles.push({ x, z, radius: 4, type: 'building' })
+
   return group
 }
 
