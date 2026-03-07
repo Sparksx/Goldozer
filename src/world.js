@@ -9,7 +9,7 @@ const CITY_CENTER = { x: 0, z: 0 }
 const CITY_RADIUS = 50
 
 const SELL_POINTS = [
-  { x: 18, z: -10, name: 'Depot Central' },
+  { x: 0, z: -30, name: 'Depot Central' },
 ]
 
 export function getMapSize() {

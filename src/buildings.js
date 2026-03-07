@@ -9,12 +9,16 @@ import { getResourceTypes } from './resources.js'
 
 const BUILDING_DEFS = [
   // === Functional buildings (upgrade via construction) ===
+  // fullCost defines all resource amounts; resources unlock progressively:
+  //   level 0→1: terre only
+  //   level 1→2: terre + pierre
+  //   level 2+:  terre + pierre + bois
   {
     id: 'entrepot',
     name: 'entrepot',
     zone: 1,
     position: { x: -22, z: -15 },
-    cost: { terre: 15 },
+    fullCost: { terre: 15, pierre: 10, bois: 8 },
     effect: { type: 'capacityBonus', bonus: 10 },
     maxLevel: 5,
     costScale: 1.6,
@@ -25,7 +29,7 @@ const BUILDING_DEFS = [
     name: 'stationService',
     zone: 1,
     position: { x: 22, z: -15 },
-    cost: { terre: 15 },
+    fullCost: { terre: 15, pierre: 10, bois: 8 },
     effect: { type: 'speedBonus', bonus: 1 },
     maxLevel: 5,
     costScale: 1.7,
@@ -36,7 +40,7 @@ const BUILDING_DEFS = [
     name: 'marche',
     zone: 1,
     position: { x: -22, z: 15 },
-    cost: { pierre: 20 },
+    fullCost: { terre: 15, pierre: 12, bois: 10 },
     effect: { type: 'sellBonus', bonus: 0.1 },
     maxLevel: 5,
     costScale: 1.8,
@@ -47,7 +51,7 @@ const BUILDING_DEFS = [
     name: 'magasinEquipement',
     zone: 1,
     position: { x: 22, z: 15 },
-    cost: { bois: 10, pierre: 10 },
+    fullCost: { terre: 15, pierre: 10, bois: 8 },
     effect: { type: 'collectRadiusBonus', bonus: 1.5 },
     maxLevel: 5,
     costScale: 1.6,
@@ -59,7 +63,7 @@ const BUILDING_DEFS = [
     name: 'concession',
     zone: 1,
     position: { x: -30, z: 40 },
-    cost: { terre: 30, pierre: 20, bois: 15 },
+    fullCost: { terre: 30, pierre: 20, bois: 15 },
     effect: { type: 'wip' },
     wip: true,
     size: { w: 18, d: 14 },
@@ -77,8 +81,8 @@ export function createBuildingsState(saved = null) {
       name: def.name,
       zone: def.zone,
       position: { ...def.position },
-      baseCost: { ...def.cost },
-      cost: scaleCost(def.cost, savedBuilding?.level || 0, def.costScale || 1.6),
+      baseCost: { ...def.fullCost },
+      cost: scaleCost(def.fullCost, savedBuilding?.level || 0, def.costScale || 1.6),
       effect: { ...def.effect },
       wip: def.wip || false,
       maxLevel: def.maxLevel || 1,
@@ -92,10 +96,21 @@ export function createBuildingsState(saved = null) {
   return buildingsState
 }
 
-function scaleCost(baseCost, level, scale) {
+// Progressive cost: level 0→1 terre only, 1→2 terre+pierre, 2+ all three
+function scaleCost(fullCost, level, scale) {
   const result = {}
-  for (const [res, amount] of Object.entries(baseCost)) {
-    result[res] = Math.floor(amount * Math.pow(scale, level))
+  const resourceOrder = ['terre', 'pierre', 'bois']
+  // Determine which resources are unlocked at this level
+  // level 0 (building to level 1): terre only
+  // level 1 (building to level 2): terre + pierre
+  // level 2+ (building to level 3+): terre + pierre + bois
+  const unlockedCount = Math.min(level + 1, 3)
+
+  for (let i = 0; i < unlockedCount; i++) {
+    const res = resourceOrder[i]
+    if (fullCost[res]) {
+      result[res] = Math.floor(fullCost[res] * Math.pow(scale, level))
+    }
   }
   return result
 }

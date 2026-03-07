@@ -342,6 +342,14 @@ function showChangelog() {
 function getChangelogHTML() {
   return `
     <div class="changelog-entry">
+      <h3>v0.8.1 <span class="changelog-date">2026-03-07</span></h3>
+      <ul>
+        <li>Fix: point de vente et station-service ne se superposent plus</li>
+        <li>Fix: texte entrepot corrige (+10 au lieu de +5)</li>
+        <li>Couts progressifs : terre, puis terre+pierre, puis terre+pierre+bois</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
       <h3>v0.8.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
         <li>Modele 3D du bulldozer (asset Kenney)</li>
