@@ -246,8 +246,8 @@ function createNuggetMesh(scene, x, z, type, seed, isMountainOrVein = false) {
   const def = RESOURCE_TYPES[type]
   if (!def) return null
 
-  // Size: larger for mountain/vein resources
-  const baseSize = isMountainOrVein ? 0.7 : 0.5
+  // Size: larger for mountain/vein resources, bigger overall for visibility
+  const baseSize = isMountainOrVein ? 0.9 : 0.7
   const size = baseSize + seededRandom(seed + 55) * (isMountainOrVein ? 0.5 : 0.4)
 
   // Nugget shape — icosahedron
@@ -260,12 +260,13 @@ function createNuggetMesh(scene, x, z, type, seed, isMountainOrVein = false) {
   const mat = new THREE.MeshLambertMaterial({
     color,
     emissive: def.emissive,
-    emissiveIntensity: 0.3,
+    emissiveIntensity: 0.4,
   })
 
   const mesh = new THREE.Mesh(geo, mat)
   const terrainY = getTerrainHeight(x, z)
-  mesh.position.set(x, terrainY + size * 0.5, z)
+  // Place well above terrain to ensure visibility
+  mesh.position.set(x, terrainY + size * 0.9, z)
   mesh.castShadow = true
 
   // Random rotation for variety

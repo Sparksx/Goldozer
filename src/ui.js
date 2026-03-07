@@ -411,6 +411,14 @@ function showChangelog() {
 function getChangelogHTML() {
   return `
     <div class="changelog-entry">
+      <h3>v0.4.1 <span class="changelog-date">2026-03-07</span></h3>
+      <ul>
+        <li>Terrain lisse (vrai bruit fBm multi-octaves au lieu de hash random)</li>
+        <li>Montagnes et collines plus douces et naturelles</li>
+        <li>Pépites de ressources plus grosses et mieux placées au-dessus du sol</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
       <h3>v0.4.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
         <li>Carte agrandie, zones 2 et 3 beaucoup plus grandes</li>

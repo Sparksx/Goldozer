@@ -62,40 +62,56 @@ export function createWorld(scene) {
     const x = vertices.getX(i)
     const y = vertices.getY(i) // world Z after rotation
 
-    let noise = seededNoise(x * 0.02, y * 0.02, seed) * 2
-    noise += seededNoise(x * 0.05, y * 0.05, seed + 50) * 1
+    // Smooth terrain noise (gentle rolling hills)
+    let noise = fbmNoise(x * 0.008, y * 0.008, seed, 4) * 3
+    noise += smoothNoise(x * 0.025, y * 0.025, seed + 50) * 1
 
-    // Add gentle mounds at resource mountain locations
+    // Add gentle mounds at resource mountain locations (wide, smooth)
     for (const mt of mountains) {
       const dx = x - mt.x
       const dy = y - mt.z
       const dist = Math.sqrt(dx * dx + dy * dy)
-      if (dist < 40) {
-        const falloff = 1 - dist / 40
-        noise += falloff * falloff * 4
+      if (dist < 70) {
+        const t = 1 - dist / 70
+        const falloff = t * t * (3 - 2 * t) // smoothstep
+        noise += falloff * 5
       }
     }
 
-    // Add subtle bumps at vein locations
+    // Add subtle bumps at vein locations (smooth)
     for (const vein of veins) {
       const dx = x - vein.x
       const dy = y - vein.z
       const dist = Math.sqrt(dx * dx + dy * dy)
-      if (dist < 25) {
-        const falloff = 1 - dist / 25
-        noise += falloff * falloff * 2
+      if (dist < 30) {
+        const t = 1 - dist / 30
+        const falloff = t * t * (3 - 2 * t) // smoothstep
+        noise += falloff * 2
       }
     }
 
-    // Zone 2 hills (90 < z < 250)
+    // Zone 2 hills (90 < z < 250) — smooth rolling hills
     if (y > 90 && y < 250) {
-      noise += seededNoise(x * 0.05, y * 0.05, seed + 100) * 5
-      noise += seededNoise(x * 0.1, y * 0.1, seed + 150) * 2
+      // Smooth entry/exit from zone 2
+      let zoneBlend = 1
+      if (y < 120) zoneBlend = (y - 90) / 30
+      if (y > 220) zoneBlend = (250 - y) / 30
+      zoneBlend = Math.max(0, Math.min(1, zoneBlend))
+      zoneBlend = zoneBlend * zoneBlend * (3 - 2 * zoneBlend)
+
+      const hillNoise = fbmNoise(x * 0.015, y * 0.015, seed + 100, 3) * 6
+        + smoothNoise(x * 0.04, y * 0.04, seed + 150) * 2
+      noise += hillNoise * zoneBlend
     }
 
-    // Zone 3 forest floor (z > 260)
+    // Zone 3 forest floor (z > 260) — gentle undulations
     if (y > 260) {
-      noise += seededNoise(x * 0.03, y * 0.03, seed + 200) * 2
+      let zoneBlend = 1
+      if (y < 280) zoneBlend = (y - 260) / 20
+      zoneBlend = Math.max(0, Math.min(1, zoneBlend))
+      zoneBlend = zoneBlend * zoneBlend * (3 - 2 * zoneBlend)
+
+      noise += fbmNoise(x * 0.012, y * 0.012, seed + 200, 3) * 2.5 * zoneBlend
     }
 
     // Flatten city area (smooth falloff)
@@ -440,12 +456,52 @@ function createBorders(scene) {
   })
 }
 
-// ─── Seeded Random ──────────────────────────────
+// ─── Seeded Random & Smooth Noise ───────────────
+
 function seededRandom(seed) {
   const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453123
   return x - Math.floor(x)
 }
 
-function seededNoise(x, y, seed) {
-  return seededRandom(x * 12.9898 + y * 78.233 + seed)
+// Hash for 2D grid points — returns [0, 1]
+function hash2D(ix, iy, seed) {
+  return seededRandom(ix * 127.1 + iy * 311.7 + seed * 13.37)
+}
+
+// Smooth value noise with bilinear interpolation + smoothstep
+function smoothNoise(x, y, seed) {
+  const ix = Math.floor(x)
+  const iy = Math.floor(y)
+  const fx = x - ix
+  const fy = y - iy
+
+  // Smoothstep interpolation for C1 continuity
+  const sx = fx * fx * (3 - 2 * fx)
+  const sy = fy * fy * (3 - 2 * fy)
+
+  const v00 = hash2D(ix, iy, seed)
+  const v10 = hash2D(ix + 1, iy, seed)
+  const v01 = hash2D(ix, iy + 1, seed)
+  const v11 = hash2D(ix + 1, iy + 1, seed)
+
+  const a = v00 + (v10 - v00) * sx
+  const b = v01 + (v11 - v01) * sx
+  return a + (b - a) * sy
+}
+
+// Multi-octave smooth noise (fBm)
+function fbmNoise(x, y, seed, octaves = 3) {
+  let value = 0
+  let amplitude = 1
+  let frequency = 1
+  let maxValue = 0
+
+  for (let i = 0; i < octaves; i++) {
+    value += smoothNoise(x * frequency, y * frequency, seed + i * 100) * amplitude
+    maxValue += amplitude
+    amplitude *= 0.5
+    frequency *= 2
+  }
+
+  return value / maxValue
 }
