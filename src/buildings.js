@@ -1,4 +1,7 @@
 import * as THREE from 'three'
+import { getTerrainHeight } from './world.js'
+import { t } from './i18n.js'
+import { getResourceTypes } from './resources.js'
 
 // ─── Building Definitions ───────────────────────────
 
@@ -216,10 +219,111 @@ function createEmptyPlot(scene, building) {
   sign.castShadow = true
   group.add(sign)
 
-  group.position.set(building.position.x, 0, building.position.z)
+  // Floating 3D marker with building name and required resources
+  const marker = createBuildingMarker(building)
+  marker.position.y = 8
+  group.add(marker)
+
+  const terrainY = getTerrainHeight(building.position.x, building.position.z)
+  group.position.set(building.position.x, terrainY, building.position.z)
   group.userData = { type: 'buildingPlot', buildingId: building.id }
   scene.add(group)
   return group
+}
+
+function createBuildingMarker(building) {
+  const group = new THREE.Group()
+  const resTypes = getResourceTypes()
+
+  // Build label text
+  const name = t(building.name)
+  const costLines = []
+  for (const [res, amount] of Object.entries(building.cost)) {
+    const delivered = building.delivered[res] || 0
+    const emoji = resTypes[res]?.emoji || ''
+    costLines.push(`${emoji} ${t(res)} ${delivered}/${amount}`)
+  }
+
+  // Create canvas texture for the label
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  canvas.width = 512
+  canvas.height = 256
+
+  // Background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'
+  roundRect(ctx, 10, 10, 492, 236, 20)
+  ctx.fill()
+
+  // Border
+  ctx.strokeStyle = '#FFD700'
+  ctx.lineWidth = 4
+  roundRect(ctx, 10, 10, 492, 236, 20)
+  ctx.stroke()
+
+  // Title
+  ctx.fillStyle = '#FFD700'
+  ctx.font = 'bold 48px Arial'
+  ctx.textAlign = 'center'
+  ctx.fillText(name, 256, 70)
+
+  // Divider line
+  ctx.strokeStyle = '#FFD70088'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(60, 90)
+  ctx.lineTo(452, 90)
+  ctx.stroke()
+
+  // Resource costs
+  ctx.font = '36px Arial'
+  ctx.fillStyle = '#FFFFFF'
+  costLines.forEach((line, i) => {
+    ctx.fillText(line, 256, 135 + i * 45)
+  })
+
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.needsUpdate = true
+
+  const spriteMat = new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true,
+    depthTest: false,
+  })
+  const sprite = new THREE.Sprite(spriteMat)
+  sprite.scale.set(8, 4, 1)
+  group.add(sprite)
+
+  // Arrow pointing down
+  const arrowGeo = new THREE.ConeGeometry(0.4, 1.2, 4)
+  const arrowMat = new THREE.MeshBasicMaterial({ color: 0xFFD700 })
+  const arrow = new THREE.Mesh(arrowGeo, arrowMat)
+  arrow.rotation.x = Math.PI
+  arrow.position.y = -2.5
+  group.add(arrow)
+
+  // Vertical pole from arrow to ground
+  const poleGeo = new THREE.CylinderGeometry(0.06, 0.06, 4.5, 4)
+  const poleMat = new THREE.MeshBasicMaterial({ color: 0xFFD700, transparent: true, opacity: 0.5 })
+  const pole = new THREE.Mesh(poleGeo, poleMat)
+  pole.position.y = -5
+  group.add(pole)
+
+  return group
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + w - r, y)
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r)
+  ctx.lineTo(x + w, y + h - r)
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
+  ctx.lineTo(x + r, y + h)
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r)
+  ctx.lineTo(x, y + r)
+  ctx.quadraticCurveTo(x, y, x + r, y)
+  ctx.closePath()
 }
 
 function createBuiltBuilding(scene, building) {
@@ -240,7 +344,8 @@ function createBuiltBuilding(scene, building) {
       break
   }
 
-  group.position.set(building.position.x, 0, building.position.z)
+  const terrainY = getTerrainHeight(building.position.x, building.position.z)
+  group.position.set(building.position.x, terrainY, building.position.z)
   group.userData = { type: 'building', buildingId: building.id }
   scene.add(group)
   return group
