@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { createWorld, getMapSize, getSellPoints } from './world.js'
 import { createBulldozer, updateBulldozer, updateCamera } from './bulldozer.js'
-import { spawnResources, checkCollection } from './resources.js'
+import { spawnResources, checkCollection, spawnVeinResources, updateVeinRespawn } from './resources.js'
 import {
   createGameState, sellResources, addToBucket,
   getMaxCapacity, persistState, getTotalInBucket
@@ -86,8 +86,10 @@ function startGame() {
   bulldozer.mesh.position.set(state.playerPos.x, 0, state.playerPos.z)
   bulldozer.rotation = state.playerRot
 
-  // Spawn resources
+  // Spawn resources (persistent + vein)
   resources = spawnResources(scene, state.collectedIds)
+  const veinResources = spawnVeinResources(scene)
+  resources.push(...veinResources)
 
   // Update HUD
   updateHUD(state)
@@ -189,10 +191,18 @@ function animate() {
   if (collected.length > 0) {
     for (const item of collected) {
       addToBucket(state, item.type, 1)
-      state.collectedIds.push(item.id)
+      if (!item.isVein) {
+        state.collectedIds.push(item.id)
+      }
     }
     updateHUD(state)
     persistState(state)
+  }
+
+  // Respawn vein resources
+  const newVeinResources = updateVeinRespawn(delta, scene)
+  if (newVeinResources.length > 0) {
+    resources.push(...newVeinResources)
   }
 
   // Check sell point proximity

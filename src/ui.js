@@ -411,6 +411,17 @@ function showChangelog() {
 function getChangelogHTML() {
   return `
     <div class="changelog-entry">
+      <h3>v0.4.0 <span class="changelog-date">2026-03-07</span></h3>
+      <ul>
+        <li>Carte agrandie, zones 2 et 3 beaucoup plus grandes</li>
+        <li>Zone ville centrale avec routes et bâtiments organisés</li>
+        <li>Ressources redessinées en pépites colorées lumineuses</li>
+        <li>Filons de ressources avec respawn automatique</li>
+        <li>4 nouveaux bâtiments WIP : Concession, Fonderie, Station-service, Laboratoire</li>
+        <li>Corrections : ressources flottantes, rivière enterrée, arbres dans le sol</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
       <h3>v0.3.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
         <li>Système de changelog et versioning</li>
