@@ -32,10 +32,42 @@ const translations = {
     musicOff: 'Musique : OFF',
     sfxOn: 'Effets : ON',
     sfxOff: 'Effets : OFF',
-    creditsText: 'GoldoZer — v0.1.0',
+    creditsText: 'GoldoZer — v0.2.0',
     menu: 'Menu',
     resume: 'Reprendre',
     pauseTitle: 'Pause',
+    // Resources
+    terre: 'Terre',
+    pierre: 'Pierre',
+    bois: 'Bois',
+    // Zones
+    zone1: 'Plaine de départ',
+    zone2: 'Collines',
+    zone3: 'Forêt',
+    zoneUnlocked: 'Zone débloquée !',
+    zoneLocked: 'Zone verrouillée',
+    // Delivery
+    deliverPrompt: 'Appuyez sur E pour livrer',
+    deliverPromptMobile: 'Livrer',
+    delivering: 'Livraison',
+    delivered: 'Livré',
+    deliverProgress: 'Livrer {resource} : {current}/{total}',
+    // Buildings
+    maison: 'Maison',
+    entrepot: 'Entrepôt',
+    marche: 'Marché',
+    scierie: 'Scierie',
+    buildingBuilt: '{name} construite !',
+    maisonEffect: '+5% prix vente terre',
+    entrepotEffect: '+10 capacité de stock',
+    marcheEffect: 'Prix dynamiques débloqués',
+    scierieEffect: 'Bois x1.5 valeur',
+    // Obstacle chantiers
+    rockslideChantier: 'Chantier de déblaiement',
+    riverChantier: 'Chantier du pont',
+    obstacleCleared: 'Passage ouvert !',
+    // HUD
+    emptyBucket: 'Godet vide',
   },
   en: {
     continue: 'Continue',
@@ -70,29 +102,66 @@ const translations = {
     musicOff: 'Music: OFF',
     sfxOn: 'SFX: ON',
     sfxOff: 'SFX: OFF',
-    creditsText: 'GoldoZer — v0.1.0',
+    creditsText: 'GoldoZer — v0.2.0',
     menu: 'Menu',
     resume: 'Resume',
     pauseTitle: 'Pause',
+    // Resources
+    terre: 'Earth',
+    pierre: 'Stone',
+    bois: 'Wood',
+    // Zones
+    zone1: 'Starting Plains',
+    zone2: 'Hills',
+    zone3: 'Forest',
+    zoneUnlocked: 'Zone unlocked!',
+    zoneLocked: 'Zone locked',
+    // Delivery
+    deliverPrompt: 'Press E to deliver',
+    deliverPromptMobile: 'Deliver',
+    delivering: 'Delivering',
+    delivered: 'Delivered',
+    deliverProgress: 'Deliver {resource} : {current}/{total}',
+    // Buildings
+    maison: 'House',
+    entrepot: 'Warehouse',
+    marche: 'Market',
+    scierie: 'Sawmill',
+    buildingBuilt: '{name} built!',
+    maisonEffect: '+5% earth sell price',
+    entrepotEffect: '+10 storage capacity',
+    marcheEffect: 'Dynamic prices unlocked',
+    scierieEffect: 'Wood x1.5 value',
+    // Obstacle chantiers
+    rockslideChantier: 'Clearing site',
+    riverChantier: 'Bridge site',
+    obstacleCleared: 'Passage opened!',
+    // HUD
+    emptyBucket: 'Bucket empty',
   },
-};
+}
 
-let currentLang = 'fr';
+let currentLang = 'fr'
 
 export function setLanguage(lang) {
   if (translations[lang]) {
-    currentLang = lang;
+    currentLang = lang
   }
 }
 
 export function getLanguage() {
-  return currentLang;
+  return currentLang
 }
 
-export function t(key) {
-  return translations[currentLang]?.[key] || translations.fr[key] || key;
+export function t(key, params = {}) {
+  let text = translations[currentLang]?.[key] || translations.fr[key] || key
+  // Replace {param} placeholders
+  for (const [k, v] of Object.entries(params)) {
+    text = text.replace(`{${k}}`, v)
+  }
+  return text
 }
 
 export function getAvailableLanguages() {
-  return Object.keys(translations);
+  return Object.keys(translations)
 }

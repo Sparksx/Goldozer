@@ -38,7 +38,7 @@ html, body {
   pointer-events: none;
 }
 
-#hud-money, #hud-bucket {
+#hud-money, #hud-bucket, #hud-bucket-resources {
   background: rgba(255, 255, 255, 0.15);
   color: #fff;
   padding: 5px 12px;
@@ -89,6 +89,86 @@ html, body {
 
 #hud-sell-prompt.hidden {
   display: none;
+}
+
+#hud-bucket-resources {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  width: fit-content;
+}
+
+#hud-delivery-prompt {
+  position: fixed;
+  bottom: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 140, 0, 0.25);
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 140, 0, 0.35);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  animation: bounce-prompt 2s ease-in-out infinite;
+  white-space: nowrap;
+  max-width: 90vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#hud-delivery-prompt.hidden {
+  display: none;
+}
+
+#hud-notification {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(40, 50, 70, 0.92);
+  color: #fef3c7;
+  padding: 16px 32px;
+  border-radius: 16px;
+  font-size: 20px;
+  font-weight: 800;
+  text-align: center;
+  pointer-events: none;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 50;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+#hud-notification.hidden {
+  display: none;
+}
+
+#hud-notification.notification-show {
+  opacity: 1;
+}
+
+#mobile-deliver-btn {
+  width: auto;
+  border-radius: 25px;
+  padding: 0 18px;
+  font-size: 14px;
+  font-weight: 700;
+  background: rgba(255, 140, 0, 0.2);
+  border-color: rgba(255, 140, 0, 0.35);
+  color: #FF8C00;
 }
 
 @keyframes bounce-prompt {
@@ -306,7 +386,7 @@ html, body {
     padding: 10px 16px;
   }
 
-  #hud-money, #hud-bucket {
+  #hud-money, #hud-bucket, #hud-bucket-resources {
     font-size: 12px;
     padding: 4px 10px;
   }
