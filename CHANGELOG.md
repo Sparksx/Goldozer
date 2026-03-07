@@ -3,6 +3,11 @@
 Toutes les modifications notables du projet sont documentées ici.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [0.6.2] - 2026-03-07
+
+### Modifié
+- Routes refaites en geometrie continue (BufferGeometry) qui epouse le terrain sans coutures visibles
+
 ## [0.6.1] - 2026-03-07
 
 ### Corrigé
