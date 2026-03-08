@@ -348,6 +348,13 @@ function showChangelog() {
 function getChangelogHTML() {
   return `
     <div class="changelog-entry">
+      <h3>v0.9.2 <span class="changelog-date">2026-03-08</span></h3>
+      <ul>
+        <li>Refactor: fonctions utilitaires partagees (utils.js)</li>
+        <li>Attribut lang HTML dynamique</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
       <h3>v0.9.1 <span class="changelog-date">2026-03-08</span></h3>
       <ul>
         <li>Langue persistee (survit au rechargement)</li>

@@ -3,6 +3,14 @@
 Toutes les modifications notables du projet sont documentées ici.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [0.9.2] - 2026-03-08
+
+### Modifié
+- Extraction de `seededRandom` dans `src/utils.js` (suppression des doublons world.js/resources.js)
+- Extraction de `roundRect` dans `src/utils.js` (suppression des doublons zones.js/buildings.js)
+- Attribut `lang` du HTML mis a jour dynamiquement selon la langue choisie
+- Boucle de jeu : `requestAnimationFrame` stocke l'ID pour pouvoir etre annule
+
 ## [0.9.1] - 2026-03-08
 
 ### Corrigé

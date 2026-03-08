@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { getTerrainHeight, getCityCenter, getCityRadius } from './world.js'
+import { seededRandom } from './utils.js'
 
 const BASE_COLLECT_RADIUS = 4
 
@@ -345,9 +346,3 @@ export function getBaseCollectRadius() {
   return BASE_COLLECT_RADIUS
 }
 
-// ─── Seeded Random ──────────────────────────────────
-
-function seededRandom(seed) {
-  const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453123
-  return x - Math.floor(x)
-}

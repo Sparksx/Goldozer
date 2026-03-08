@@ -94,10 +94,10 @@ Trié par ordre d'importance : impact sur l'expérience joueur, stabilité et gr
 
 ## P3 — Faible (améliorations, dette technique, polish)
 
-- [ ] **Fonction `roundRect` dupliquée** — Identique dans `zones.js:424` et `buildings.js:482`. Extraire dans un utilitaire commun.
+- [x] **Fonction `roundRect` dupliquée** — Identique dans `zones.js:424` et `buildings.js:482`. Extraire dans un utilitaire commun.
   - Fichiers : `src/zones.js:424-436`, `src/buildings.js:482-494`
 
-- [ ] **Fonction `seededRandom` dupliquée** — Identique dans `world.js:578` et `resources.js:350`. Extraire dans un utilitaire commun.
+- [x] **Fonction `seededRandom` dupliquée** — Identique dans `world.js:578` et `resources.js:350`. Extraire dans un utilitaire commun.
   - Fichiers : `src/world.js:578-581`, `src/resources.js:350-353`
 
 - [ ] **Fichier `ui.js` monolithique** — ~600 lignes couvrant HUD, menus, joystick, boutons, overlays, changelog. Découper en sous-modules.
@@ -110,12 +110,12 @@ Trié par ordre d'importance : impact sur l'expérience joueur, stabilité et gr
 
 - [ ] **Pas de tests** — Aucun test unitaire, d'intégration, ou E2E. Les régressions sont découvertes uniquement en jouant.
 
-- [ ] **`requestAnimationFrame` sans possibilité d'arrêt** — La boucle de jeu tourne indéfiniment sans `cancelAnimationFrame`. Problème si le jeu est intégré dans un SPA.
+- [x] **`requestAnimationFrame` sans possibilité d'arrêt** — La boucle de jeu tourne indéfiniment sans `cancelAnimationFrame`. Problème si le jeu est intégré dans un SPA.
   - Fichiers : `src/main.js:133-302`
 
 - [ ] **Pas de frustum culling spatial** — Three.js fait du culling automatique par mesh, mais un octree/grid spatial pour 850+ ressources aiderait sur les appareils faibles.
 
-- [ ] **`lang="fr"` hardcodé dans le HTML** — L'attribut `lang` du HTML ne change pas quand on passe en anglais.
+- [x] **`lang="fr"` hardcodé dans le HTML** — L'attribut `lang` du HTML ne change pas quand on passe en anglais.
   - Fichiers : `index.html:2`
 
 - [ ] **HUD trop minimaliste** — Pas d'indication de zone, pas d'icônes de ressources, pas de feedback visuel godet plein.

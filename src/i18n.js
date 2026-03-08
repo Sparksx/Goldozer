@@ -150,11 +150,13 @@ const translations = {
 }
 
 let currentLang = localStorage.getItem('goldozer_lang') || 'fr'
+document.documentElement.lang = currentLang
 
 export function setLanguage(lang) {
   if (translations[lang]) {
     currentLang = lang
     localStorage.setItem('goldozer_lang', lang)
+    document.documentElement.lang = lang
   }
 }
 

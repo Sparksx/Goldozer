@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { getResourceMountains, getResourceVeins } from './resources.js'
 import { createZoneObstacles } from './zones.js'
 import { createBuildingPlots, getBuildingsState } from './buildings.js'
+import { seededRandom } from './utils.js'
 
 const MAP_SIZE = 400
 
@@ -613,12 +614,7 @@ function createBorders(scene) {
   })
 }
 
-// ─── Seeded Random & Smooth Noise ───────────────
-
-function seededRandom(seed) {
-  const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453123
-  return x - Math.floor(x)
-}
+// ─── Smooth Noise ───────────────────────────────
 
 // Hash for 2D grid points — returns [0, 1]
 function hash2D(ix, iy, seed) {

@@ -193,8 +193,9 @@ const clock = new THREE.Clock()
 let prevBulldozerX = 0
 let prevBulldozerZ = 0
 
+let animFrameId = null
 function animate() {
-  requestAnimationFrame(animate)
+  animFrameId = requestAnimationFrame(animate)
 
   if (contextLost) return
 
