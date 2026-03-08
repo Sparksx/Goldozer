@@ -165,24 +165,29 @@ Game state is saved to `localStorage['goldozer_save']` as base64-encoded JSON vi
 
 ## Versioning & Changelog
 
-Le projet utilise un système de versioning sémantique (semver) et un changelog.
+The project uses semantic versioning (semver) and a changelog.
 
-### Règles obligatoires pour Claude
+### Mandatory rules for Claude
 
-**À chaque modification du code, Claude DOIT :**
+**On every code change, Claude MUST:**
 
-1. **Incrémenter la version** dans `src/version.js` :
-   - **PATCH** (0.8.X) : bugfix, correction mineure
-   - **MINOR** (0.X.0) : nouvelle fonctionnalité, amélioration notable
-   - **MAJOR** (X.0.0) : changement majeur, breaking change
+1. **Increment the version** in `src/version.js`:
+   - **PATCH** (0.3.X): bugfix, minor fix
+   - **MINOR** (0.X.0): new feature, notable improvement
+   - **MAJOR** (X.0.0): breaking change
 
-2. **Mettre à jour `CHANGELOG.md`** : ajouter une entrée datée dans la section `[Unreleased]` ou créer une nouvelle section versionnée avec les catégories appropriées :
-   - `### Ajouté` — nouvelles fonctionnalités
-   - `### Modifié` — changements de fonctionnalités existantes
-   - `### Corrigé` — corrections de bugs
-   - `### Supprimé` — fonctionnalités retirées
+2. **Update `CHANGELOG.md`** (in English): add a dated entry with appropriate categories:
+   - `### Added` — new features
+   - `### Changed` — changes to existing features
+   - `### Fixed` — bug fixes
+   - `### Removed` — removed features
 
-3. **Mettre à jour le changelog dans `src/ui.js`** : la fonction `getChangelogHTML()` doit refléter les changements pour que les joueurs puissent les voir dans le menu Crédits > Changelog du jeu.
+3. **Update the in-game changelog in `src/ui.js`**: the `getChangelogHTML()` function must reflect changes so players can see them in the Credits > Changelog menu.
+
+### Changelog language and tone
+
+- **`CHANGELOG.md`**: Written in **English**. Technical and detailed — aimed at developers.
+- **In-game changelog (`getChangelogHTML()`)**: Written in **English**. Player-facing and concise — only mention what the player can see or feel (e.g. "Better shadows", "Auto-save added"). Do NOT expose internal technical details (e.g. "refactored utils", "replaced raycaster with heightmap", "debounced persistState"). Keep entries short and simple.
 
 ### Fichiers concernés
 - `src/version.js` — source unique du numéro de version (exporté comme `VERSION`)

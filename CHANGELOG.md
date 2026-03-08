@@ -1,218 +1,224 @@
 # Changelog
 
-Toutes les modifications notables du projet sont documentées ici.
-Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
+All notable changes to this project are documented here.
+Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
+## [0.9.3] - 2026-03-08
+
+### Changed
+- Rewrite all changelogs in English
+- In-game changelog simplified to player-facing language (no technical details)
+- Update CLAUDE.md with changelog language and tone rules
 
 ## [0.9.2] - 2026-03-08
 
-### Modifié
-- Extraction de `seededRandom` dans `src/utils.js` (suppression des doublons world.js/resources.js)
-- Extraction de `roundRect` dans `src/utils.js` (suppression des doublons zones.js/buildings.js)
-- Attribut `lang` du HTML mis a jour dynamiquement selon la langue choisie
-- Boucle de jeu : `requestAnimationFrame` stocke l'ID pour pouvoir etre annule
+### Changed
+- Extract `seededRandom` and `roundRect` into shared `src/utils.js` (remove duplicates from world.js, resources.js, zones.js, buildings.js)
+- Dynamically update HTML `lang` attribute when language changes
+- Store `requestAnimationFrame` ID for proper cleanup via `cancelAnimationFrame`
 
 ## [0.9.1] - 2026-03-08
 
-### Corrigé
-- Menu Son/Langue : le bouton Retour revient au bon menu parent (principal ou pause)
-- getSellPriceMultiplier : suppression du parametre inutilise
-- Detection mobile : support iPadOS (Safari se presente en desktop)
+### Fixed
+- Sound/Language menu back button now returns to correct parent menu (main or pause)
+- Remove unused `resourceType` parameter from `getSellPriceMultiplier`
+- iPadOS detection (Safari reports as desktop user-agent)
 
-### Modifié
-- Shadow map reduite (250→120) pour des ombres plus nettes
-- checkSellPointProximity : cache des sell points et suppression du sqrt
+### Changed
+- Reduce shadow camera bounds (250 → 120) for sharper shadows
+- Cache sell points array and use squared distance in proximity check
 
-### Ajouté
-- Langue persistee dans localStorage (survit au rechargement)
-- Sauvegarde automatique toutes les 30 secondes
+### Added
+- Persist language choice in localStorage
+- Auto-save every 30 seconds
 
 ## [0.9.0] - 2026-03-07
 
-### Modifié
-- Terrain : remplacement du raycaster par un heightmap pre-calcule avec interpolation bilineaire (performances +++)
-- Sauvegarde debounced : persistState() limite a 1 appel/seconde pour reduire les ecritures localStorage
-- Arbres et rochers partagent geometries et materiaux (reduction massive des allocations GPU)
-- Notifications empilables corrigees : clearTimeout avant chaque nouvelle notification
-- Camera : Vector3 pre-alloues dans updateCamera() pour eviter la pression GC
+### Changed
+- Replace raycaster-based `getTerrainHeight` with pre-computed heightmap + bilinear interpolation
+- Debounce `persistState()` to max 1 call/sec to reduce localStorage writes
+- Share geometries and materials across all trees and rocks (fewer GPU allocations)
+- Fix overlapping notifications with `clearTimeout` before showing new one
+- Pre-allocate Vector3 objects in `updateCamera()` to reduce GC pressure
 
-### Ajouté
-- Validation des donnees de sauvegarde dans loadGame() (protection contre les saves corrompues)
-- Message de fallback si WebGL n'est pas supporte par le navigateur
+### Added
+- Save data validation in `loadGame()` (handles corrupted saves gracefully)
+- WebGL fallback message when browser doesn't support it
 
 ## [0.8.2] - 2026-03-07
 
-### Modifié
-- Bulldozer agrandi (scale 1.6 → 2.2) pour une meilleure visibilité
-- Depot Central déplacé sur la route principale (0, -40) loin des bâtiments
+### Changed
+- Bulldozer enlarged (scale 1.6 → 2.2) for better visibility
+- Central Depot moved to main road (0, -40) away from buildings
 
-### Corrigé
-- Station-service inaccessible : le rayon de livraison était trop petit par rapport au rayon de collision du bâtiment (impossible d'approcher assez près pour livrer)
-- Rayon de livraison augmenté (10 → 14) pour tous les bâtiments
-- Fuite memoire critique au redemarrage : toutes les geometries, materiaux et textures sont maintenant disposees lors d'un restart ou nouvelle partie
-- Double appel de startGame() au chargement avec sauvegarde : le monde n'est plus cree deux fois
-- Tableau de ressources jamais nettoye entre les parties : les anciens meshes sont disposees et le tableau est reinitialise
-- collectedIds converti en Set pour des lookups O(1) au lieu de O(n) — empeche aussi la degradation progressive des performances
-- Gestion de la perte du contexte WebGL (webglcontextlost/restored) : le jeu affiche un message et se restaure automatiquement au lieu de crasher silencieusement
+### Fixed
+- Gas station inaccessible: delivery radius was too small relative to building collision radius
+- Delivery radius increased (10 → 14) for all buildings
+- Critical memory leak on restart: all geometries, materials and textures are now disposed on restart/new game
+- Double `startGame()` call when loading a save: world is no longer created twice
+- Resources array never cleared between games: old meshes are disposed and array is reset
+- Convert `collectedIds` to Set for O(1) lookups instead of O(n) — prevents progressive performance degradation
+- Handle WebGL context loss (`webglcontextlost`/`restored`): game shows message and auto-recovers instead of crashing
 
 ## [0.8.1] - 2026-03-07
 
-### Corrigé
-- Point de vente et station-service ne se superposent plus (depot deplace en centre-ville)
-- Texte de l'entrepot corrige : affiche +10 capacite (au lieu de +5)
-- Couts de construction progressifs : terre seule (niv.1), terre+pierre (niv.2), terre+pierre+bois (niv.3+)
+### Fixed
+- Sell point and gas station no longer overlap (depot moved to city center roadside)
+- Warehouse text corrected: shows +10 capacity (instead of +5)
+- Progressive building costs: earth only (lv.1), earth+stone (lv.2), earth+stone+wood (lv.3+)
 
 ## [0.8.0] - 2026-03-07
 
-### Ajouté
-- Modele 3D du bulldozer (asset Kenney via OBJ/MTL)
-- Chargement asynchrone avec placeholder pendant le loading
-- Ombres portees sur le modele 3D
+### Added
+- 3D bulldozer model (Kenney asset via OBJ/MTL)
+- Async model loading with placeholder during load
+- Cast shadows on 3D model
 
-### Modifié
-- Remplacement du bulldozer procedural par le modele 3D externe
-- Refactoring du modelLoader pour gerer correctement les chemins MTL/textures
+### Changed
+- Replace procedural bulldozer with external 3D model
+- Refactor modelLoader to handle MTL/texture paths correctly
 
 ## [0.7.1] - 2026-03-07
 
-### Ajouté
-- Dossier `public/models/` structure pour les modeles 3D externes (.obj/.mtl)
-- Sous-dossiers : `vehicles/`, `buildings/`, `nature/`
-- Module `src/modelLoader.js` : chargeur OBJ/MTL avec cache
+### Added
+- `public/models/` directory for external 3D assets (.obj/.mtl)
+- Subdirectories: `vehicles/`, `buildings/`, `nature/`
+- `src/modelLoader.js`: OBJ/MTL loader with cache
 
 ## [0.7.0] - 2026-03-07
 
-### Modifié
-- Entrepot et station-service : premier niveau ne coute que de la terre (15)
-- Entrepot donne 10 de capacite par niveau (au lieu de 5)
-- Un seul point de vente en centre-ville (hors de la route)
+### Changed
+- Warehouse and gas station: first level costs only earth (15)
+- Warehouse gives 10 capacity per level (instead of 5)
+- Single sell point in city center (off the road)
 
-### Supprimé
-- Depot Sud et route sud supprimés
-- Second point de vente supprimé
+### Removed
+- South depot and south road
+- Second sell point
 
 ## [0.6.3] - 2026-03-07
 
-### Ajouté
-- Bonus de vitesse +50% lorsque le bulldozer roule sur les routes
+### Added
+- 50% speed bonus when bulldozer drives on roads
 
 ## [0.6.2] - 2026-03-07
 
-### Modifié
-- Routes refaites en geometrie continue (BufferGeometry) qui epouse le terrain sans coutures visibles
+### Changed
+- Roads rebuilt as continuous geometry (BufferGeometry) that follows terrain without visible seams
 
 ## [0.6.1] - 2026-03-07
 
-### Corrigé
-- Les pepites poussees recalculent leur elevation (ne volent plus / ne s'enfoncent plus dans le sol)
-- Les routes suivent l'elevation du terrain (ne disparaissent plus sous le sol)
+### Fixed
+- Pushed nuggets now recalculate elevation (no longer fly or sink into ground)
+- Roads follow terrain elevation (no longer disappear under ground)
 
 ## [0.6.0] - 2026-03-07
 
-### Ajouté
-- Ameliorations par batiments : Entrepot (+capacite), Station-service (+vitesse), Marche (+prix vente), Magasin d'equipement (+rayon collecte)
-- Batiments multi-niveaux : chaque batiment peut etre ameliore 5 fois avec un cout croissant
-- Magasin d'equipement (nouveau batiment fonctionnel)
-- Concession agrandie avec showroom vitré, parking et vehicules exposés
-- Station-service avec pompes multiples (nombre augmente avec le niveau)
-- Artere principale large (14 unites) traversant la ville vers les nouvelles zones
-- Trottoirs et marquages au sol sur l'artere principale
-- Route sud elargie vers le Depot Sud
+### Added
+- Building-based upgrades: Warehouse (+capacity), Gas Station (+speed), Market (+sell price), Equipment Shop (+collect radius)
+- Multi-level buildings: each can be upgraded 5 times with scaling costs
+- Equipment Shop (new functional building)
+- Enlarged Dealership with glass showroom, parking and displayed vehicles
+- Gas Station with multiple pumps (count increases with level)
+- Wide main road (14 units) through city to new zones
+- Sidewalks and road markings on main road
+- Widened south road to South Depot
 
-### Modifié
-- Les ameliorations ne passent plus par un menu mais par la construction de batiments
-- Menu d'amelioration supprime (pause et principal)
-- Bouton mobile d'amelioration supprime
-- Disposition des batiments reorganisee le long de l'artere principale
-- Taille des batiments adaptee a leur usage (concession tres grande, station-service avec espace pompes)
+### Changed
+- Upgrades are now tied to building construction instead of a menu
+- Upgrade menu removed (pause and main)
+- Mobile upgrade button removed
+- Building layout reorganized along main road
+- Building sizes adjusted to match their purpose
 
-### Corrigé
-- Les pins/marqueurs de batiments se mettent a jour apres chaque livraison partielle
-- Les pancartes de deblocage de zone disparaissent quand la zone est debloquee
-- Les arbres ne poussent plus sur l'artere principale
+### Fixed
+- Building markers/pins update after each partial delivery
+- Zone unlock signs disappear when zone is unlocked
+- Trees no longer spawn on main road
 
 ## [0.5.0] - 2026-03-07
 
-### Ajouté
-- Système de collision : le bulldozer ne traverse plus les arbres, rochers et bâtiments
-- Rebond léger lors des collisions pour éviter de rester bloqué contre les obstacles
-- Poussée des pépites de ressources : quand le godet est plein, le bulldozer pousse les pépites au lieu de les ramasser
-- Les pépites poussées roulent visuellement dans la direction du bulldozer
-- Module `src/collision.js` dédié à la gestion des collisions
+### Added
+- Collision system: bulldozer no longer passes through trees, rocks and buildings
+- Slight bounce on collision to prevent getting stuck against obstacles
+- Nugget pushing: when bucket is full, bulldozer pushes nuggets instead of collecting
+- Pushed nuggets visually roll in the bulldozer's direction
+- Dedicated `src/collision.js` module
 
-### Modifié
-- `world.js` enregistre maintenant les positions de tous les obstacles (arbres, rochers, bâtiments, points de vente)
-- Boucle de jeu améliorée avec vérification des collisions après chaque déplacement
+### Changed
+- `world.js` now registers all obstacle positions (trees, rocks, buildings, sell points)
+- Game loop improved with collision checks after each movement
 
 ## [0.4.2] - 2026-03-07
 
-### Corrigé
-- Bug critique terrain : le Y local de PlaneGeometry mappait vers -worldZ après rotation, causant une inversion de toutes les zones, montagnes et couleurs du terrain (les mounds étaient au mauvais endroit par rapport aux ressources)
-- Raycaster terrain : ajout de `updateMatrixWorld(true)` pour que le raycaster prenne en compte la rotation du mesh sol — `getTerrainHeight()` retourne maintenant la vraie hauteur
+### Fixed
+- Critical terrain bug: PlaneGeometry local Y mapped to -worldZ after rotation, causing all zones, mountains and terrain colors to be inverted
+- Terrain raycaster: add `updateMatrixWorld(true)` so raycaster accounts for ground mesh rotation
 
 ## [0.4.1] - 2026-03-07
 
-### Corrigé
-- Terrain lisse : remplacement du bruit pseudo-random par un vrai bruit de valeur avec interpolation bilinéaire et smoothstep (fBm multi-octaves)
-- Montagnes trop abruptes : mounds élargis (rayon 70) avec falloff smoothstep au lieu de quadratique
-- Collines zone 2 : transition douce aux bordures de zone avec blending progressif
-- Ressources sous le terrain : pépites placées plus haut (y + size * 0.9) et taille augmentée pour meilleure visibilité
-- Émissivité des pépites augmentée (0.3 → 0.4)
+### Fixed
+- Smooth terrain: replace pseudo-random noise with proper value noise using bilinear interpolation and smoothstep (multi-octave fBm)
+- Mountains too steep: wider mounds (radius 70) with smoothstep falloff
+- Zone 2 hills: smooth transitions at zone boundaries with progressive blending
+- Resources under terrain: nuggets placed higher (y + size * 0.9) with increased size for visibility
+- Increased nugget emissive intensity (0.3 → 0.4)
 
 ## [0.4.0] - 2026-03-07
 
-### Ajouté
-- Zone ville centrale avec terrain plat, routes et bâtiments organisés
-- Routes (nord-sud et est-ouest) avec marquages au sol dans la ville
-- Ressources redessinées en pépites colorées (icosaèdres) avec lueur émissive
-- Filons de ressources avec respawn automatique (timer 30-45s)
-- Marqueurs visuels au sol pour les filons de ressources
-- 4 nouveaux bâtiments WIP : Concession, Fonderie, Station-service, Laboratoire
-- Modèles 3D pour tous les nouveaux bâtiments
-- Depot Sud (second point de vente au sud de la carte)
+### Added
+- Central city zone with flat terrain, roads and organized buildings
+- Roads (north-south and east-west) with road markings in city
+- Resources redesigned as colored nuggets (icosahedrons) with emissive glow
+- Resource veins with automatic respawn (30-45s timer)
+- Visual ground markers for resource veins
+- 4 new WIP buildings: Dealership, Foundry, Gas Station, Laboratory
+- 3D models for all new buildings
+- South Depot (second sell point south of map)
 
-### Modifié
-- Carte agrandie (MAP_SIZE 200 → 400) pour plus d'espace d'exploration
-- Zone 2 (Collines) élargie : z 65-135 → z 90-250 (160 unités)
-- Zone 3 (Forêt) élargie : z 145-200 → z 260-400 (140 unités)
-- Ressources plus grosses, plus visibles et plus nombreuses
-- Couleurs de ressources variées par type (palettes de 4 couleurs)
-- Plus d'arbres et de rochers dans toutes les zones
-- Ombre et brouillard ajustés pour la carte plus grande
+### Changed
+- Map enlarged (MAP_SIZE 200 → 400) for more exploration space
+- Zone 2 (Hills) expanded: z 65-135 → z 90-250
+- Zone 3 (Forest) expanded: z 145-200 → z 260-400
+- Larger, more visible and more numerous resources
+- Varied resource colors per type (4-color palettes)
+- More trees and rocks across all zones
+- Shadow and fog adjusted for larger map
 
-### Corrigé
-- Ressources flottantes : meilleur échantillonnage du terrain (raycaster à y=100)
-- Arbres et bâtiments enfoncés dans le sol : terrain aplati dans la ville
-- Rivière invisible/enterrée : suit maintenant la hauteur du terrain
-- Terrain aplati autour de la rivière pour éviter les artefacts visuels
-- Pas de ressources dans la zone ville (exclusion par rayon)
+### Fixed
+- Floating resources: better terrain sampling (raycaster at y=100)
+- Trees and buildings sinking into ground: terrain flattened in city
+- Invisible/buried river: now follows terrain height
+- Terrain flattened around river to prevent visual artifacts
+- No resources spawn in city zone (radius exclusion)
 
 ## [0.3.0] - 2026-03-07
 
-### Ajouté
-- Système de changelog et versioning
-- Fichier `CHANGELOG.md` pour tracer l'historique des changements
-- Module `src/version.js` centralisant le numéro de version
-- Affichage de la version et du changelog dans le menu crédits du jeu
-- Instructions dans `CLAUDE.md` pour maintenir le changelog à chaque modification
+### Added
+- Changelog and versioning system
+- `CHANGELOG.md` file to track change history
+- `src/version.js` module centralizing version number
+- Version and changelog display in game credits menu
+- Instructions in `CLAUDE.md` to maintain changelog on every change
 
-## [0.2.0] - Date inconnue
+## [0.2.0]
 
-### Ajouté
-- Système de livraison de ressources aux chantiers et bâtiments
-- Zones multiples (Plaine, Collines, Forêt) avec déblocage progressif
-- Construction de bâtiments (Maison, Entrepôt, Marché, Scierie) avec effets
-- Obstacles de chantier (éboulement, rivière) à débloquer avec des ressources
-- Ressources multiples : terre, pierre, bois
-- Système d'internationalisation (FR/EN)
-- Sauvegarde LocalStorage avec encodage base64
+### Added
+- Resource delivery system for construction sites and buildings
+- Multiple zones (Plains, Hills, Forest) with progressive unlocking
+- Building construction (House, Warehouse, Market, Sawmill) with effects
+- Construction site obstacles (rockslide, river) unlocked with resources
+- Multiple resources: earth, stone, wood
+- Internationalization system (FR/EN)
+- LocalStorage save with base64 encoding
 
-## [0.1.0] - Date inconnue
+## [0.1.0]
 
-### Ajouté
-- Bulldozer 3D contrôlable (WASD/flèches + joystick mobile)
-- Génération procédurale du monde (terrain, arbres, rochers)
-- Collecte de ressources et système de vente
-- Système d'améliorations (vitesse, capacité, puissance, rayon)
-- HUD avec affichage argent et godet
-- Menu principal, pause, options son, crédits
-- Support mobile (joystick virtuel + boutons tactiles)
+### Added
+- Controllable 3D bulldozer (WASD/arrows + mobile joystick)
+- Procedural world generation (terrain, trees, rocks)
+- Resource collection and selling system
+- Upgrade system (speed, capacity, power, radius)
+- HUD with money and bucket display
+- Main menu, pause, sound options, credits
+- Mobile support (virtual joystick + touch buttons)

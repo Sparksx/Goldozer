@@ -350,128 +350,78 @@ function getChangelogHTML() {
     <div class="changelog-entry">
       <h3>v0.9.2 <span class="changelog-date">2026-03-08</span></h3>
       <ul>
-        <li>Refactor: fonctions utilitaires partagees (utils.js)</li>
-        <li>Attribut lang HTML dynamique</li>
+        <li>Code cleanup and internal improvements</li>
       </ul>
     </div>
     <div class="changelog-entry">
       <h3>v0.9.1 <span class="changelog-date">2026-03-08</span></h3>
       <ul>
-        <li>Langue persistee (survit au rechargement)</li>
-        <li>Sauvegarde automatique toutes les 30 secondes</li>
-        <li>Fix: retour menu Son/Langue vers le bon parent</li>
-        <li>Fix: detection iPadOS</li>
-        <li>Ombres plus nettes (shadow map optimisee)</li>
+        <li>Language choice is now saved</li>
+        <li>Auto-save every 30 seconds</li>
+        <li>Sharper shadows</li>
+        <li>Better iPad support</li>
       </ul>
     </div>
     <div class="changelog-entry">
       <h3>v0.9.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
-        <li>Perf: heightmap pre-calcule (remplace le raycaster terrain)</li>
-        <li>Perf: geometries/materiaux partages pour arbres et rochers</li>
-        <li>Perf: sauvegarde debounced (max 1x/sec)</li>
-        <li>Perf: Vector3 pre-alloues dans la camera</li>
-        <li>Fix: notifications empilables (clearTimeout)</li>
-        <li>Fix: validation des sauvegardes corrompues</li>
-        <li>Ajout: message fallback si WebGL non supporte</li>
+        <li>Major performance improvements</li>
+        <li>Better stability on restart and long sessions</li>
+        <li>Corrupted saves are now handled gracefully</li>
       </ul>
     </div>
     <div class="changelog-entry">
       <h3>v0.8.2 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
-        <li>Bulldozer agrandi pour meilleure visibilite</li>
-        <li>Depot Central deplace loin de la station-service</li>
-        <li>Fix: station-service accessible pour livraison (rayon corrige)</li>
-        <li>Fix: fuite memoire au redemarrage (dispose geometries/materiaux)</li>
-        <li>Fix: double chargement du monde avec sauvegarde</li>
-        <li>Fix: nettoyage des ressources entre les parties</li>
-        <li>Fix: collectedIds en Set pour performances O(1)</li>
-        <li>Fix: gestion de la perte du contexte WebGL</li>
+        <li>Bigger bulldozer for better visibility</li>
+        <li>Gas station now reachable for deliveries</li>
       </ul>
     </div>
     <div class="changelog-entry">
       <h3>v0.8.1 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
-        <li>Fix: point de vente et station-service ne se superposent plus</li>
-        <li>Fix: texte entrepot corrige (+10 au lieu de +5)</li>
-        <li>Couts progressifs : terre, puis terre+pierre, puis terre+pierre+bois</li>
+        <li>Buildings no longer overlap</li>
+        <li>Progressive building costs (earth, then stone, then wood)</li>
       </ul>
     </div>
     <div class="changelog-entry">
       <h3>v0.8.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
-        <li>Modele 3D du bulldozer (asset Kenney)</li>
-        <li>Chargement asynchrone avec placeholder</li>
+        <li>New 3D bulldozer model</li>
       </ul>
     </div>
     <div class="changelog-entry">
       <h3>v0.7.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
-        <li>Entrepot et station-service : premier niveau ne coute que de la terre (15)</li>
-        <li>Entrepot donne 10 de capacite par niveau</li>
-        <li>Un seul point de vente en centre-ville</li>
-        <li>Suppression du Depot Sud et de la route sud</li>
-      </ul>
-    </div>
-    <div class="changelog-entry">
-      <h3>v0.6.3 <span class="changelog-date">2026-03-07</span></h3>
-      <ul>
-        <li>Bonus de vitesse +50% sur les routes</li>
-      </ul>
-    </div>
-    <div class="changelog-entry">
-      <h3>v0.6.2 <span class="changelog-date">2026-03-07</span></h3>
-      <ul>
-        <li>Routes en geometrie continue epousant le terrain</li>
-      </ul>
-    </div>
-    <div class="changelog-entry">
-      <h3>v0.6.1 <span class="changelog-date">2026-03-07</span></h3>
-      <ul>
-        <li>Fix: pepites poussees suivent l'elevation du terrain</li>
-        <li>Fix: routes suivent l'elevation du terrain</li>
+        <li>Rebalanced building costs</li>
+        <li>Single sell point in city center</li>
       </ul>
     </div>
     <div class="changelog-entry">
       <h3>v0.6.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
-        <li>Ameliorations par batiments (plus de menu)</li>
-        <li>Entrepot=capacite, Station=vitesse, Marche=prix, Equipement=rayon</li>
-        <li>Batiments multi-niveaux (5 max, cout croissant)</li>
-        <li>Concession agrandie avec parking et showroom</li>
-        <li>Station-service avec pompes multiples</li>
-        <li>Artere principale large traversant la ville</li>
-        <li>Fix: pins mis a jour apres livraison</li>
-        <li>Fix: pancartes de zone disparaissent</li>
+        <li>Upgrades are now buildings you construct</li>
+        <li>Multi-level buildings (up to level 5)</li>
+        <li>Speed boost on roads</li>
+        <li>Smoother roads that follow the terrain</li>
+        <li>Enlarged Dealership and Gas Station</li>
+        <li>Wide main road through city</li>
       </ul>
     </div>
     <div class="changelog-entry">
       <h3>v0.5.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
-        <li>Collisions avec arbres, rochers et batiments</li>
-        <li>Poussee des pepites quand le godet est plein</li>
-      </ul>
-    </div>
-    <div class="changelog-entry">
-      <h3>v0.4.2 <span class="changelog-date">2026-03-07</span></h3>
-      <ul>
-        <li>Fix critique : terrain inverse</li>
-        <li>Fix raycaster : hauteur terrain reelle</li>
+        <li>Collision with trees, rocks and buildings</li>
+        <li>Push nuggets when bucket is full</li>
       </ul>
     </div>
     <div class="changelog-entry">
       <h3>v0.4.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
-        <li>Carte agrandie, zones 2 et 3 plus grandes</li>
-        <li>Zone ville centrale avec routes et batiments</li>
-        <li>Ressources en pepites colorees lumineuses</li>
-        <li>Filons avec respawn automatique</li>
-      </ul>
-    </div>
-    <div class="changelog-entry">
-      <h3>v0.3.0 <span class="changelog-date">2026-03-07</span></h3>
-      <ul>
-        <li>Systeme de changelog et versioning</li>
+        <li>Bigger map with expanded zones</li>
+        <li>City center with roads and buildings</li>
+        <li>Glowing resource nuggets</li>
+        <li>Resource veins with auto-respawn</li>
       </ul>
     </div>
   `
