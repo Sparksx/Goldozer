@@ -12,6 +12,7 @@ let controls = null
 
 export function initUI(options) {
   isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile/i.test(navigator.userAgent)
+    || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)) // iPadOS
     || (navigator.maxTouchPoints > 0 && window.innerWidth < 1024)
   onStartGame = options.onStartGame
   onResumeGame = options.onResumeGame
@@ -57,20 +58,24 @@ export function updateHUD(state) {
   const total = getTotalInBucket(state.bucket)
   moneyEl.textContent = `$ ${state.money}`
 
-  // Multi-resource display
-  let resourceText = `${total}/${maxCap}`
+  // Multi-resource display with colored indicators
   const parts = []
-  if (state.bucket.terre > 0) parts.push(`T:${state.bucket.terre}`)
-  if (state.bucket.pierre > 0) parts.push(`P:${state.bucket.pierre}`)
-  if (state.bucket.bois > 0) parts.push(`B:${state.bucket.bois}`)
-  if (parts.length > 0) {
-    resourceText += ` (${parts.join(' ')})`
-  }
-  resourcesEl.textContent = resourceText
+  if (state.bucket.terre > 0) parts.push(`<span style="color:#c9a96e">${state.bucket.terre}</span>`)
+  if (state.bucket.pierre > 0) parts.push(`<span style="color:#aab0b5">${state.bucket.pierre}</span>`)
+  if (state.bucket.bois > 0) parts.push(`<span style="color:#8bc34a">${state.bucket.bois}</span>`)
+  const detail = parts.length > 0 ? ` (${parts.join(' ')})` : ''
+  resourcesEl.innerHTML = `${total}/${maxCap}${detail}`
 
   const pct = maxCap > 0 ? (total / maxCap) * 100 : 0
   barEl.style.width = `${pct}%`
   barEl.style.backgroundColor = pct >= 100 ? '#f87171' : pct >= 70 ? '#fbbf24' : '#6ee7a0'
+
+  // Pulse animation when bucket is full
+  const container = document.getElementById('hud-bucket-bar-container')
+  if (container) {
+    if (pct >= 100) container.classList.add('bucket-full')
+    else container.classList.remove('bucket-full')
+  }
 }
 
 export function showSellPrompt(show) {
@@ -109,15 +114,18 @@ export function showDeliveryPrompt(show, target = null) {
   }
 }
 
+let notificationTimer = null
 export function showNotification(message, duration = 3000) {
   const el = document.getElementById('hud-notification')
   if (!el) return
+  if (notificationTimer) clearTimeout(notificationTimer)
   el.textContent = message
   el.classList.remove('hidden')
   el.classList.add('notification-show')
-  setTimeout(() => {
+  notificationTimer = setTimeout(() => {
     el.classList.add('hidden')
     el.classList.remove('notification-show')
+    notificationTimer = null
   }, duration)
 }
 
@@ -146,11 +154,11 @@ export function showMainMenu() {
   })
 
   addMenuButton(btnContainer, t('sound'), () => {
-    showSoundMenu()
+    showSoundMenu('main')
   })
 
   addMenuButton(btnContainer, t('language'), () => {
-    showLanguageMenu()
+    showLanguageMenu('main')
   })
 
   addMenuButton(btnContainer, t('reset'), () => {
@@ -204,7 +212,7 @@ export function showPauseMenu() {
 let soundEnabled = true
 let musicEnabled = true
 
-function showSoundMenu() {
+function showSoundMenu(parentMenu = 'pause') {
   hideAllOverlays()
   const overlay = createOverlay('sound-menu')
   const title = document.createElement('h1')
@@ -217,23 +225,24 @@ function showSoundMenu() {
 
   addMenuButton(btnContainer, soundEnabled ? t('sfxOn') : t('sfxOff'), () => {
     soundEnabled = !soundEnabled
-    showSoundMenu()
+    showSoundMenu(parentMenu)
   })
 
   addMenuButton(btnContainer, musicEnabled ? t('musicOn') : t('musicOff'), () => {
     musicEnabled = !musicEnabled
-    showSoundMenu()
+    showSoundMenu(parentMenu)
   })
 
   addMenuButton(btnContainer, t('back'), () => {
-    showPauseMenu()
+    if (parentMenu === 'main') showMainMenu()
+    else showPauseMenu()
   })
 
   overlay.appendChild(btnContainer)
 }
 
 // ─── Language Menu ───────────────────────────────
-function showLanguageMenu() {
+function showLanguageMenu(parentMenu = 'pause') {
   hideAllOverlays()
   const overlay = createOverlay('lang-menu')
   const title = document.createElement('h1')
@@ -252,12 +261,13 @@ function showLanguageMenu() {
     const current = getLanguage() === lang ? ' *' : ''
     addMenuButton(btnContainer, `${label}${current}`, () => {
       setLanguage(lang)
-      showLanguageMenu()
+      showLanguageMenu(parentMenu)
     })
   })
 
   addMenuButton(btnContainer, t('back'), () => {
-    showPauseMenu()
+    if (parentMenu === 'main') showMainMenu()
+    else showPauseMenu()
   })
 
   overlay.appendChild(btnContainer)
@@ -342,96 +352,88 @@ function showChangelog() {
 function getChangelogHTML() {
   return `
     <div class="changelog-entry">
+      <h3>v0.10.0 <span class="changelog-date">2026-03-08</span></h3>
+      <ul>
+        <li>Improved keyboard navigation in menus</li>
+        <li>Colored resource indicators in HUD</li>
+        <li>Visual feedback when bucket is full</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
+      <h3>v0.9.2 <span class="changelog-date">2026-03-08</span></h3>
+      <ul>
+        <li>Code cleanup and internal improvements</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
+      <h3>v0.9.1 <span class="changelog-date">2026-03-08</span></h3>
+      <ul>
+        <li>Language choice is now saved</li>
+        <li>Auto-save every 30 seconds</li>
+        <li>Sharper shadows</li>
+        <li>Better iPad support</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
+      <h3>v0.9.0 <span class="changelog-date">2026-03-07</span></h3>
+      <ul>
+        <li>Major performance improvements</li>
+        <li>Better stability on restart and long sessions</li>
+        <li>Corrupted saves are now handled gracefully</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
       <h3>v0.8.2 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
-        <li>Bulldozer agrandi pour meilleure visibilite</li>
-        <li>Depot Central deplace loin de la station-service</li>
-        <li>Fix: station-service accessible pour livraison (rayon corrige)</li>
+        <li>Bigger bulldozer for better visibility</li>
+        <li>Gas station now reachable for deliveries</li>
       </ul>
     </div>
     <div class="changelog-entry">
       <h3>v0.8.1 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
-        <li>Fix: point de vente et station-service ne se superposent plus</li>
-        <li>Fix: texte entrepot corrige (+10 au lieu de +5)</li>
-        <li>Couts progressifs : terre, puis terre+pierre, puis terre+pierre+bois</li>
+        <li>Buildings no longer overlap</li>
+        <li>Progressive building costs (earth, then stone, then wood)</li>
       </ul>
     </div>
     <div class="changelog-entry">
       <h3>v0.8.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
-        <li>Modele 3D du bulldozer (asset Kenney)</li>
-        <li>Chargement asynchrone avec placeholder</li>
+        <li>New 3D bulldozer model</li>
       </ul>
     </div>
     <div class="changelog-entry">
       <h3>v0.7.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
-        <li>Entrepot et station-service : premier niveau ne coute que de la terre (15)</li>
-        <li>Entrepot donne 10 de capacite par niveau</li>
-        <li>Un seul point de vente en centre-ville</li>
-        <li>Suppression du Depot Sud et de la route sud</li>
-      </ul>
-    </div>
-    <div class="changelog-entry">
-      <h3>v0.6.3 <span class="changelog-date">2026-03-07</span></h3>
-      <ul>
-        <li>Bonus de vitesse +50% sur les routes</li>
-      </ul>
-    </div>
-    <div class="changelog-entry">
-      <h3>v0.6.2 <span class="changelog-date">2026-03-07</span></h3>
-      <ul>
-        <li>Routes en geometrie continue epousant le terrain</li>
-      </ul>
-    </div>
-    <div class="changelog-entry">
-      <h3>v0.6.1 <span class="changelog-date">2026-03-07</span></h3>
-      <ul>
-        <li>Fix: pepites poussees suivent l'elevation du terrain</li>
-        <li>Fix: routes suivent l'elevation du terrain</li>
+        <li>Rebalanced building costs</li>
+        <li>Single sell point in city center</li>
       </ul>
     </div>
     <div class="changelog-entry">
       <h3>v0.6.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
-        <li>Ameliorations par batiments (plus de menu)</li>
-        <li>Entrepot=capacite, Station=vitesse, Marche=prix, Equipement=rayon</li>
-        <li>Batiments multi-niveaux (5 max, cout croissant)</li>
-        <li>Concession agrandie avec parking et showroom</li>
-        <li>Station-service avec pompes multiples</li>
-        <li>Artere principale large traversant la ville</li>
-        <li>Fix: pins mis a jour apres livraison</li>
-        <li>Fix: pancartes de zone disparaissent</li>
+        <li>Upgrades are now buildings you construct</li>
+        <li>Multi-level buildings (up to level 5)</li>
+        <li>Speed boost on roads</li>
+        <li>Smoother roads that follow the terrain</li>
+        <li>Enlarged Dealership and Gas Station</li>
+        <li>Wide main road through city</li>
       </ul>
     </div>
     <div class="changelog-entry">
       <h3>v0.5.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
-        <li>Collisions avec arbres, rochers et batiments</li>
-        <li>Poussee des pepites quand le godet est plein</li>
-      </ul>
-    </div>
-    <div class="changelog-entry">
-      <h3>v0.4.2 <span class="changelog-date">2026-03-07</span></h3>
-      <ul>
-        <li>Fix critique : terrain inverse</li>
-        <li>Fix raycaster : hauteur terrain reelle</li>
+        <li>Collision with trees, rocks and buildings</li>
+        <li>Push nuggets when bucket is full</li>
       </ul>
     </div>
     <div class="changelog-entry">
       <h3>v0.4.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>
-        <li>Carte agrandie, zones 2 et 3 plus grandes</li>
-        <li>Zone ville centrale avec routes et batiments</li>
-        <li>Ressources en pepites colorees lumineuses</li>
-        <li>Filons avec respawn automatique</li>
-      </ul>
-    </div>
-    <div class="changelog-entry">
-      <h3>v0.3.0 <span class="changelog-date">2026-03-07</span></h3>
-      <ul>
-        <li>Systeme de changelog et versioning</li>
+        <li>Bigger map with expanded zones</li>
+        <li>City center with roads and buildings</li>
+        <li>Glowing resource nuggets</li>
+        <li>Resource veins with auto-respawn</li>
       </ul>
     </div>
   `
@@ -582,7 +584,14 @@ function createOverlay(id) {
   const overlay = document.createElement('div')
   overlay.id = id
   overlay.className = 'overlay'
+  overlay.setAttribute('role', 'dialog')
+  overlay.setAttribute('aria-modal', 'true')
   document.body.appendChild(overlay)
+  // Auto-focus first button after content is added
+  requestAnimationFrame(() => {
+    const firstBtn = overlay.querySelector('button')
+    if (firstBtn) firstBtn.focus()
+  })
   return overlay
 }
 

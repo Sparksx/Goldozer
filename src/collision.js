@@ -3,8 +3,7 @@
 // and bulldozer vs resources (push when bucket full)
 
 import { getTerrainHeight } from './world.js'
-
-const BULLDOZER_RADIUS = 2.5
+import { BULLDOZER_RADIUS, PUSH_RADIUS, PUSH_STRENGTH, BOUNCE_FACTOR } from './constants.js'
 
 // ─── Obstacle Collision ─────────────────────────
 
@@ -45,7 +44,7 @@ export function resolveObstacleCollisions(bulldozer, obstacles) {
     const dotProduct = Math.sin(bulldozer.rotation) * col.nx + Math.cos(bulldozer.rotation) * col.nz
     if (dotProduct > 0) {
       // Moving toward obstacle, bounce back
-      bulldozer.velocity *= -0.3
+      bulldozer.velocity *= BOUNCE_FACTOR
     }
   }
 
@@ -53,9 +52,6 @@ export function resolveObstacleCollisions(bulldozer, obstacles) {
 }
 
 // ─── Resource Pushing ───────────────────────────
-
-const PUSH_RADIUS = 3.5
-const PUSH_STRENGTH = 12
 
 export function pushResources(resources, bulldozerPos, bulldozerRotation, bulldozerVelocity, delta) {
   if (Math.abs(bulldozerVelocity) < 0.5) return

@@ -20,6 +20,17 @@ import { resolveObstacleCollisions, pushResources } from './collision.js'
 import { createBuildingsState, upgradePlotToBuilding, getBuildingById, refreshBuildingMarker } from './buildings.js'
 import { checkDeliveryProximity, canDeliverTo, performDelivery } from './delivery.js'
 import { t } from './i18n.js'
+import { SELL_RADIUS, MAX_DELTA, AUTO_SAVE_INTERVAL } from './constants.js'
+
+// ─── WebGL Support Check ────────────────────────
+if (!document.createElement('canvas').getContext('webgl2') &&
+    !document.createElement('canvas').getContext('webgl')) {
+  document.getElementById('game-container').innerHTML =
+    '<div style="color:#fff;text-align:center;padding:2em;font-family:sans-serif">' +
+    '<h2>WebGL non supporté</h2>' +
+    '<p>Votre navigateur ne supporte pas WebGL. Veuillez utiliser un navigateur récent (Chrome, Firefox, Safari, Edge).</p></div>'
+  throw new Error('WebGL not supported')
+}
 
 // ─── Three.js Setup ──────────────────────────────
 const renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -27,7 +38,8 @@ renderer.setSize(window.innerWidth, window.innerHeight)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.shadowMap.enabled = true
 renderer.shadowMap.type = THREE.PCFSoftShadowMap
-document.getElementById('game-container').appendChild(renderer.domElement)
+const gameContainer = document.getElementById('game-container')
+gameContainer.appendChild(renderer.domElement)
 
 const scene = new THREE.Scene()
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 300)
@@ -37,6 +49,21 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight
   camera.updateProjectionMatrix()
   renderer.setSize(window.innerWidth, window.innerHeight)
+})
+
+// ─── WebGL Context Lost / Restored ──────────────
+let contextLost = false
+
+renderer.domElement.addEventListener('webglcontextlost', (e) => {
+  e.preventDefault()
+  contextLost = true
+  gameRunning = false
+  showNotification('Contexte graphique perdu. Restauration...', 10000)
+})
+
+renderer.domElement.addEventListener('webglcontextrestored', () => {
+  contextLost = false
+  startGame()
 })
 
 // ─── Game State ──────────────────────────────────
@@ -59,8 +86,12 @@ initUI({
       state = createGameState()
       createZonesState()
       createBuildingsState()
+      startGame()
+    } else if (!worldLoaded) {
+      startGame()
+    } else {
+      gameRunning = true
     }
-    startGame()
   },
   onResumeGame: () => {
     gameRunning = true
@@ -74,11 +105,43 @@ initUI({
 showMainMenu()
 
 // ─── Start Game ──────────────────────────────────
-function startGame() {
-  // Clear previous scene objects
-  while (scene.children.length > 0) {
-    scene.remove(scene.children[0])
+function disposeObject(obj) {
+  if (obj.geometry) obj.geometry.dispose()
+  if (obj.material) {
+    if (Array.isArray(obj.material)) {
+      obj.material.forEach(m => {
+        if (m.map) m.map.dispose()
+        m.dispose()
+      })
+    } else {
+      if (obj.material.map) obj.material.map.dispose()
+      obj.material.dispose()
+    }
   }
+}
+
+function clearScene() {
+  // Dispose all resources meshes
+  for (const res of resources) {
+    if (res.mesh) {
+      scene.remove(res.mesh)
+      disposeObject(res.mesh)
+    }
+  }
+  resources = []
+
+  // Dispose all scene children recursively
+  while (scene.children.length > 0) {
+    const child = scene.children[0]
+    scene.remove(child)
+    child.traverse(disposeObject)
+  }
+}
+
+let worldLoaded = false
+
+function startGame() {
+  clearScene()
 
   // Create world (includes zone obstacles and building plots)
   worldData = createWorld(scene)
@@ -96,29 +159,29 @@ function startGame() {
   // Update HUD
   updateHUD(state)
 
+  worldLoaded = true
   gameRunning = true
 }
 
-// If we have a save, still need the world loaded for continue
+// If we have a save, load the world once (no double startGame)
 if (savedData) {
   startGame()
-  gameRunning = false // Wait for menu
-  showMainMenu()
+  gameRunning = false // Wait for menu choice
 }
 
 // ─── Sell Point Proximity ────────────────────────
-const SELL_RADIUS = 12
+const SELL_RADIUS_SQ = SELL_RADIUS * SELL_RADIUS
+const cachedSellPoints = getSellPoints()
 
 function checkSellPointProximity() {
   if (!bulldozer) return false
   const bx = bulldozer.mesh.position.x
   const bz = bulldozer.mesh.position.z
-  const sellPoints = getSellPoints()
 
-  for (const sp of sellPoints) {
+  for (const sp of cachedSellPoints) {
     const dx = sp.x - bx
     const dz = sp.z - bz
-    if (Math.sqrt(dx * dx + dz * dz) < SELL_RADIUS) {
+    if (dx * dx + dz * dz < SELL_RADIUS_SQ) {
       return true
     }
   }
@@ -130,10 +193,13 @@ const clock = new THREE.Clock()
 let prevBulldozerX = 0
 let prevBulldozerZ = 0
 
+let animFrameId = null
 function animate() {
-  requestAnimationFrame(animate)
+  animFrameId = requestAnimationFrame(animate)
 
-  const delta = Math.min(clock.getDelta(), 0.05)
+  if (contextLost) return
+
+  const delta = Math.min(clock.getDelta(), MAX_DELTA)
 
   // Handle menu toggle
   if (controls.consumeMenu()) {
@@ -198,7 +264,7 @@ function animate() {
     for (const item of collected) {
       addToBucket(state, item.type, 1)
       if (!item.isVein) {
-        state.collectedIds.push(item.id)
+        state.collectedIds.add(item.id)
       }
     }
     updateHUD(state)
@@ -289,7 +355,23 @@ function animate() {
   state.playerPos.z = bulldozer.mesh.position.z
   state.playerRot = bulldozer.rotation
 
+  autoSave(delta)
+
   renderer.render(scene, camera)
+}
+
+// Auto-save every 30 seconds
+let autoSaveTimer = 0
+function autoSave(delta) {
+  autoSaveTimer += delta
+  if (autoSaveTimer >= AUTO_SAVE_INTERVAL) {
+    autoSaveTimer = 0
+    if (bulldozer && state) {
+      state.playerPos = { x: bulldozer.mesh.position.x, z: bulldozer.mesh.position.z }
+      state.playerRot = bulldozer.rotation
+      persistState(state)
+    }
+  }
 }
 
 // Save position on visibility change

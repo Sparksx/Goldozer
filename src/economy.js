@@ -3,11 +3,10 @@ import { getResourceValue } from './resources.js'
 import { getSellPriceMultiplier, getCapacityBonus, getSpeedBonus, getCollectRadiusBonus } from './buildings.js'
 import { getZoneSaveData } from './zones.js'
 import { getBuildingSaveData } from './buildings.js'
-
-const BASE_PRICE_PER_UNIT = 10
+import { BASE_PRICE_PER_UNIT, BASE_CAPACITY, PERSIST_DEBOUNCE_MS } from './constants.js'
 
 export function getBaseCapacity() {
-  return 10
+  return BASE_CAPACITY
 }
 
 export function getMaxCapacity() {
@@ -53,7 +52,7 @@ export function createGameState(saved = null) {
     return {
       money: saved.money || 0,
       bucket,
-      collectedIds: saved.collectedIds || [],
+      collectedIds: new Set(saved.collectedIds || []),
       playerPos: saved.playerPos || { x: 0, z: 0 },
       playerRot: saved.playerRot || 0,
     }
@@ -62,7 +61,7 @@ export function createGameState(saved = null) {
   return {
     money: 0,
     bucket: emptyBucket(),
-    collectedIds: [],
+    collectedIds: new Set(),
     playerPos: { x: 0, z: 0 },
     playerRot: 0,
   }
@@ -76,7 +75,7 @@ export function sellResources(state) {
   for (const [type, count] of Object.entries(state.bucket)) {
     if (count <= 0) continue
     const baseValue = getResourceValue(type)
-    const multiplier = getSellPriceMultiplier(type)
+    const multiplier = getSellPriceMultiplier()
     earnings += Math.floor(count * baseValue * BASE_PRICE_PER_UNIT * multiplier)
   }
 
@@ -95,11 +94,16 @@ export function addToBucket(state, type, count) {
   return added
 }
 
+let persistTimer = null
 export function persistState(state) {
+  if (persistTimer) return
+  persistTimer = setTimeout(() => {
+    persistTimer = null
+  }, PERSIST_DEBOUNCE_MS)
   saveGame({
     money: state.money,
     bucket: state.bucket,
-    collectedIds: state.collectedIds,
+    collectedIds: [...state.collectedIds],
     playerPos: state.playerPos,
     playerRot: state.playerRot,
     zones: getZoneSaveData(),

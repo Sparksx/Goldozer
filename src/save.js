@@ -15,7 +15,22 @@ export function loadGame() {
     const encoded = localStorage.getItem(SAVE_KEY);
     if (!encoded) return null;
     const json = decodeURIComponent(escape(atob(encoded)));
-    return JSON.parse(json);
+    const data = JSON.parse(json);
+    // Validate essential fields
+    if (typeof data !== 'object' || data === null) return null;
+    if (typeof data.money !== 'number' || !isFinite(data.money) || data.money < 0) {
+      data.money = 0;
+    }
+    if (!data.playerPos || typeof data.playerPos.x !== 'number' || typeof data.playerPos.z !== 'number') {
+      data.playerPos = { x: 0, z: 0 };
+    }
+    if (typeof data.playerRot !== 'number' || !isFinite(data.playerRot)) {
+      data.playerRot = 0;
+    }
+    if (!Array.isArray(data.collectedIds)) {
+      data.collectedIds = [];
+    }
+    return data;
   } catch (e) {
     console.warn('Failed to load save:', e);
     return null;

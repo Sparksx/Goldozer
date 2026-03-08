@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { getTerrainHeight } from './world.js'
 import { t } from './i18n.js'
 import { getResourceTypes } from './resources.js'
+import { roundRect } from './utils.js'
 
 // ─── Building Definitions ───────────────────────────
 // Buildings along the main road (x=0 axis), placed on left/right sides
@@ -181,7 +182,7 @@ export function getBuildingSaveData() {
 
 // ─── Building Effects (used by economy.js) ──────────
 
-export function getSellPriceMultiplier(resourceType) {
+export function getSellPriceMultiplier() {
   if (!buildingsState) return 1
   let mult = 1
   for (const b of buildingsState) {
@@ -477,20 +478,6 @@ function createBuildingMarker(building) {
   group.add(pole)
 
   return group
-}
-
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath()
-  ctx.moveTo(x + r, y)
-  ctx.lineTo(x + w - r, y)
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r)
-  ctx.lineTo(x + w, y + h - r)
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
-  ctx.lineTo(x + r, y + h)
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r)
-  ctx.lineTo(x, y + r)
-  ctx.quadraticCurveTo(x, y, x + r, y)
-  ctx.closePath()
 }
 
 function createBuiltBuilding(scene, building) {
