@@ -1,3 +1,5 @@
+import { JOYSTICK_DEADZONE } from './constants.js'
+
 export function createControls() {
   const state = {
     forward: false,
@@ -82,7 +84,7 @@ export function createControls() {
     setFromJoystick(dx, dy) {
       // dy negative = forward, positive = backward
       // dx negative = left, positive = right
-      const deadzone = 0.15;
+      const deadzone = JOYSTICK_DEADZONE;
       state.isAnalog = true;
       state.forward = dy < -deadzone;
       state.backward = dy > deadzone;

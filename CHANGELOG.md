@@ -3,6 +3,21 @@
 All notable changes to this project are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.10.0] - 2026-03-08
+
+### Added
+- Centralized `src/constants.js` module for all gameplay magic numbers
+- ESLint (flat config) + Prettier for consistent code style
+- Vitest test framework with initial unit tests for constants and utilities
+- ARIA roles, `aria-modal`, and auto-focus on menu overlays for accessibility
+- `focus-visible` keyboard navigation styles on all menu buttons
+- Colored resource indicators in HUD (earth, stone, wood)
+- Bucket-full pulse animation on HUD bar
+
+### Changed
+- All game constants extracted from individual files into constants.js
+- HUD shows resource types with distinct colors instead of plain count
+
 ## [0.9.3] - 2026-03-08
 
 ### Changed

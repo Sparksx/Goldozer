@@ -102,13 +102,13 @@ Trié par ordre d'importance : impact sur l'expérience joueur, stabilité et gr
 
 - [ ] **Fichier `ui.js` monolithique** — ~600 lignes couvrant HUD, menus, joystick, boutons, overlays, changelog. Découper en sous-modules.
 
-- [ ] **Constantes magiques dispersées** — `SELL_RADIUS`, `DELIVERY_RADIUS`, `PUSH_RADIUS`, `BASE_COLLECT_RADIUS`, etc. dans différents fichiers sans centralisation.
+- [x] **Constantes magiques dispersées** — `SELL_RADIUS`, `DELIVERY_RADIUS`, `PUSH_RADIUS`, `BASE_COLLECT_RADIUS`, etc. dans différents fichiers sans centralisation.
 
 - [ ] **Pas de système d'événements** — Les modules communiquent par appels directs et mutation d'état partagé. Un EventEmitter léger aiderait à découpler.
 
-- [ ] **Pas de linter/formatter** — Inconsistance de style (`;` présents dans certains fichiers, absents dans d'autres). Pas d'ESLint ni Prettier.
+- [x] **Pas de linter/formatter** — Inconsistance de style (`;` présents dans certains fichiers, absents dans d'autres). Pas d'ESLint ni Prettier.
 
-- [ ] **Pas de tests** — Aucun test unitaire, d'intégration, ou E2E. Les régressions sont découvertes uniquement en jouant.
+- [x] **Pas de tests** — Aucun test unitaire, d'intégration, ou E2E. Les régressions sont découvertes uniquement en jouant.
 
 - [x] **`requestAnimationFrame` sans possibilité d'arrêt** — La boucle de jeu tourne indéfiniment sans `cancelAnimationFrame`. Problème si le jeu est intégré dans un SPA.
   - Fichiers : `src/main.js:133-302`
@@ -118,9 +118,9 @@ Trié par ordre d'importance : impact sur l'expérience joueur, stabilité et gr
 - [x] **`lang="fr"` hardcodé dans le HTML** — L'attribut `lang` du HTML ne change pas quand on passe en anglais.
   - Fichiers : `index.html:2`
 
-- [ ] **HUD trop minimaliste** — Pas d'indication de zone, pas d'icônes de ressources, pas de feedback visuel godet plein.
+- [x] **HUD trop minimaliste** — Pas d'indication de zone, pas d'icônes de ressources, pas de feedback visuel godet plein.
 
-- [ ] **Pas d'accessibilité clavier dans les menus** — Pas de navigation Tab, pas de focus visible, pas de rôles ARIA.
+- [x] **Pas d'accessibilité clavier dans les menus** — Pas de navigation Tab, pas de focus visible, pas de rôles ARIA.
   - Fichiers : `src/ui.js`
 
 - [ ] **Pas de contrôle de la caméra** — Impossible de zoomer ou tourner la caméra. Le `lerp(0.04)` fixe rend la caméra lente.

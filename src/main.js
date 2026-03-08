@@ -20,6 +20,7 @@ import { resolveObstacleCollisions, pushResources } from './collision.js'
 import { createBuildingsState, upgradePlotToBuilding, getBuildingById, refreshBuildingMarker } from './buildings.js'
 import { checkDeliveryProximity, canDeliverTo, performDelivery } from './delivery.js'
 import { t } from './i18n.js'
+import { SELL_RADIUS, MAX_DELTA, AUTO_SAVE_INTERVAL } from './constants.js'
 
 // ─── WebGL Support Check ────────────────────────
 if (!document.createElement('canvas').getContext('webgl2') &&
@@ -169,7 +170,6 @@ if (savedData) {
 }
 
 // ─── Sell Point Proximity ────────────────────────
-const SELL_RADIUS = 12
 const SELL_RADIUS_SQ = SELL_RADIUS * SELL_RADIUS
 const cachedSellPoints = getSellPoints()
 
@@ -199,7 +199,7 @@ function animate() {
 
   if (contextLost) return
 
-  const delta = Math.min(clock.getDelta(), 0.05)
+  const delta = Math.min(clock.getDelta(), MAX_DELTA)
 
   // Handle menu toggle
   if (controls.consumeMenu()) {
@@ -364,7 +364,7 @@ function animate() {
 let autoSaveTimer = 0
 function autoSave(delta) {
   autoSaveTimer += delta
-  if (autoSaveTimer >= 30) {
+  if (autoSaveTimer >= AUTO_SAVE_INTERVAL) {
     autoSaveTimer = 0
     if (bulldozer && state) {
       state.playerPos = { x: bulldozer.mesh.position.x, z: bulldozer.mesh.position.z }

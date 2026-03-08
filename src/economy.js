@@ -3,11 +3,10 @@ import { getResourceValue } from './resources.js'
 import { getSellPriceMultiplier, getCapacityBonus, getSpeedBonus, getCollectRadiusBonus } from './buildings.js'
 import { getZoneSaveData } from './zones.js'
 import { getBuildingSaveData } from './buildings.js'
-
-const BASE_PRICE_PER_UNIT = 10
+import { BASE_PRICE_PER_UNIT, BASE_CAPACITY, PERSIST_DEBOUNCE_MS } from './constants.js'
 
 export function getBaseCapacity() {
-  return 10
+  return BASE_CAPACITY
 }
 
 export function getMaxCapacity() {
@@ -100,7 +99,7 @@ export function persistState(state) {
   if (persistTimer) return
   persistTimer = setTimeout(() => {
     persistTimer = null
-  }, 1000)
+  }, PERSIST_DEBOUNCE_MS)
   saveGame({
     money: state.money,
     bucket: state.bucket,

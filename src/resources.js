@@ -1,8 +1,7 @@
 import * as THREE from 'three'
 import { getTerrainHeight, getCityCenter, getCityRadius } from './world.js'
 import { seededRandom } from './utils.js'
-
-const BASE_COLLECT_RADIUS = 4
+import { BASE_COLLECT_RADIUS } from './constants.js'
 
 // ─── Resource Type Definitions (nugget style) ───────
 

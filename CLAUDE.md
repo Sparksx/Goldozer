@@ -13,15 +13,21 @@
 - **3D Engine:** Three.js (`three@^0.183.2`)
 - **Build Tool:** Vite (`vite@^7.3.1`)
 - **Deployment:** GitHub Actions → GitHub Pages (`gh-pages`)
-- **No testing framework, linter, or formatter is configured**
+- **Testing:** Vitest
+- **Linter:** ESLint (flat config)
+- **Formatter:** Prettier (no semicolons, single quotes)
 
 ## Commands
 
 ```bash
-npm run dev       # Start Vite dev server
-npm run build     # Production build to /dist
-npm run preview   # Preview production build locally
-npm run deploy    # Build + deploy to GitHub Pages
+npm run dev        # Start Vite dev server
+npm run build      # Production build to /dist
+npm run preview    # Preview production build locally
+npm run deploy     # Build + deploy to GitHub Pages
+npm run lint       # Run ESLint on src/
+npm run format     # Format src/ with Prettier
+npm run test       # Run tests once
+npm run test:watch # Run tests in watch mode
 ```
 
 ## Project Structure
@@ -42,8 +48,11 @@ src/
 ├── delivery.js     # Delivery system for chantiers and building plots
 ├── i18n.js         # Internationalization (French/English, 150+ keys)
 ├── save.js         # LocalStorage persistence (base64 encoded)
+├── constants.js    # Centralized gameplay constants
+├── utils.js        # Shared utility functions (seededRandom, roundRect)
 ├── version.js      # Version number (single source of truth)
 └── style.css       # All styling
+tests/              # Vitest unit tests
 public/
 └── models/         # External 3D assets (OBJ/MTL)
     ├── vehicles/   # Bulldozer model

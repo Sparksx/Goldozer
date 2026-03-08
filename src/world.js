@@ -3,11 +3,7 @@ import { getResourceMountains, getResourceVeins } from './resources.js'
 import { createZoneObstacles } from './zones.js'
 import { createBuildingPlots, getBuildingsState } from './buildings.js'
 import { seededRandom } from './utils.js'
-
-const MAP_SIZE = 400
-
-const CITY_CENTER = { x: 0, z: 0 }
-const CITY_RADIUS = 50
+import { MAP_SIZE, CITY_CENTER, CITY_RADIUS, HEIGHTMAP_RES } from './constants.js'
 
 const SELL_POINTS = [
   { x: -22, z: -40, name: 'Depot Central' },
@@ -33,7 +29,6 @@ let worldObstacles = []
 
 // ─── Pre-computed Heightmap ─────────────────────
 // Stores terrain heights in a grid for O(1) lookup instead of raycasting
-const HEIGHTMAP_RES = 129 // 128+1 to match PlaneGeometry segments
 let heightmap = null
 let heightmapMinX = 0
 let heightmapMinZ = 0

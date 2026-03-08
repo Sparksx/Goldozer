@@ -58,20 +58,24 @@ export function updateHUD(state) {
   const total = getTotalInBucket(state.bucket)
   moneyEl.textContent = `$ ${state.money}`
 
-  // Multi-resource display
-  let resourceText = `${total}/${maxCap}`
+  // Multi-resource display with colored indicators
   const parts = []
-  if (state.bucket.terre > 0) parts.push(`T:${state.bucket.terre}`)
-  if (state.bucket.pierre > 0) parts.push(`P:${state.bucket.pierre}`)
-  if (state.bucket.bois > 0) parts.push(`B:${state.bucket.bois}`)
-  if (parts.length > 0) {
-    resourceText += ` (${parts.join(' ')})`
-  }
-  resourcesEl.textContent = resourceText
+  if (state.bucket.terre > 0) parts.push(`<span style="color:#c9a96e">${state.bucket.terre}</span>`)
+  if (state.bucket.pierre > 0) parts.push(`<span style="color:#aab0b5">${state.bucket.pierre}</span>`)
+  if (state.bucket.bois > 0) parts.push(`<span style="color:#8bc34a">${state.bucket.bois}</span>`)
+  const detail = parts.length > 0 ? ` (${parts.join(' ')})` : ''
+  resourcesEl.innerHTML = `${total}/${maxCap}${detail}`
 
   const pct = maxCap > 0 ? (total / maxCap) * 100 : 0
   barEl.style.width = `${pct}%`
   barEl.style.backgroundColor = pct >= 100 ? '#f87171' : pct >= 70 ? '#fbbf24' : '#6ee7a0'
+
+  // Pulse animation when bucket is full
+  const container = document.getElementById('hud-bucket-bar-container')
+  if (container) {
+    if (pct >= 100) container.classList.add('bucket-full')
+    else container.classList.remove('bucket-full')
+  }
 }
 
 export function showSellPrompt(show) {
@@ -348,6 +352,14 @@ function showChangelog() {
 function getChangelogHTML() {
   return `
     <div class="changelog-entry">
+      <h3>v0.10.0 <span class="changelog-date">2026-03-08</span></h3>
+      <ul>
+        <li>Improved keyboard navigation in menus</li>
+        <li>Colored resource indicators in HUD</li>
+        <li>Visual feedback when bucket is full</li>
+      </ul>
+    </div>
+    <div class="changelog-entry">
       <h3>v0.9.2 <span class="changelog-date">2026-03-08</span></h3>
       <ul>
         <li>Code cleanup and internal improvements</li>
@@ -572,7 +584,14 @@ function createOverlay(id) {
   const overlay = document.createElement('div')
   overlay.id = id
   overlay.className = 'overlay'
+  overlay.setAttribute('role', 'dialog')
+  overlay.setAttribute('aria-modal', 'true')
   document.body.appendChild(overlay)
+  // Auto-focus first button after content is added
+  requestAnimationFrame(() => {
+    const firstBtn = overlay.querySelector('button')
+    if (firstBtn) firstBtn.focus()
+  })
   return overlay
 }
 

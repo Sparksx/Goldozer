@@ -1,7 +1,6 @@
 import { deliverToObstacle, getNearbyChantier } from './zones.js'
 import { deliverToBuilding, getNearbyBuildingPlot, getBuildingById } from './buildings.js'
-
-const DELIVERY_RADIUS = 14
+import { DELIVERY_RADIUS } from './constants.js'
 
 export function getDeliveryRadius() {
   return DELIVERY_RADIUS

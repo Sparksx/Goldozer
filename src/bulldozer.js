@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { getTerrainHeight, isOnMainRoad } from './world.js';
 import { loadModelWithMaterials } from './modelLoader.js';
+import { MAX_SPEED, ACCELERATION, DECELERATION, TURN_SPEED, ROAD_SPEED_BONUS, CAMERA_HEIGHT, CAMERA_DISTANCE, CAMERA_LERP, CAMERA_LOOK_AHEAD, CAMERA_LOOK_HEIGHT } from './constants.js';
 
 export function createBulldozer(scene) {
   const group = new THREE.Group();
@@ -54,12 +55,12 @@ export function createBulldozer(scene) {
 }
 
 export function updateBulldozer(bulldozer, input, delta, speedBonus, mapSize) {
-  const roadBonus = isOnMainRoad(bulldozer.mesh.position.x, bulldozer.mesh.position.z) ? 1.5 : 1;
+  const roadBonus = isOnMainRoad(bulldozer.mesh.position.x, bulldozer.mesh.position.z) ? ROAD_SPEED_BONUS : 1;
   const speedMultiplier = (1 + speedBonus * 0.3) * roadBonus;
-  const maxSpeed = 15 * speedMultiplier;
-  const acceleration = 20 * speedMultiplier;
-  const deceleration = 15;
-  const turnSpeed = 2.0;
+  const maxSpeed = MAX_SPEED * speedMultiplier;
+  const acceleration = ACCELERATION * speedMultiplier;
+  const deceleration = DECELERATION;
+  const turnSpeed = TURN_SPEED;
 
   // Forward/backward (analog-aware for mobile)
   const accelFactor = input.isAnalog ? (input.forward ? input.analogForward : input.analogBackward) : 1;
@@ -121,7 +122,7 @@ const _yAxis = new THREE.Vector3(0, 1, 0);
 
 export function updateCamera(camera, bulldozer) {
   // Camera behind and above (like a balloon on a string)
-  _camOffset.set(0, 12, -18);
+  _camOffset.set(0, CAMERA_HEIGHT, -CAMERA_DISTANCE);
   _camOffset.applyAxisAngle(_yAxis, bulldozer.rotation);
 
   _camTarget.set(
@@ -131,15 +132,15 @@ export function updateCamera(camera, bulldozer) {
   );
 
   // Smooth follow with slight lag (balloon on string feel)
-  camera.position.lerp(_camTarget, 0.04);
+  camera.position.lerp(_camTarget, CAMERA_LERP);
 
   // Look ahead of the bulldozer so player can see what's coming
-  _camLookAhead.set(0, 0, 8);
+  _camLookAhead.set(0, 0, CAMERA_LOOK_AHEAD);
   _camLookAhead.applyAxisAngle(_yAxis, bulldozer.rotation);
 
   camera.lookAt(
     bulldozer.mesh.position.x + _camLookAhead.x,
-    bulldozer.mesh.position.y + 2,
+    bulldozer.mesh.position.y + CAMERA_LOOK_HEIGHT,
     bulldozer.mesh.position.z + _camLookAhead.z
   );
 }
