@@ -60,34 +60,34 @@ Trié par ordre d'importance : impact sur l'expérience joueur, stabilité et gr
 
 ## P2 — Moyen (bugs mineurs, UX, qualité de code)
 
-- [ ] **Langue non persistée** — Changer de langue via le menu ne sauvegarde pas le choix. Au rechargement, on retombe sur `'fr'`.
+- [x] **Langue non persistée** — Changer de langue via le menu ne sauvegarde pas le choix. Au rechargement, on retombe sur `'fr'`.
   - Fichiers : `src/i18n.js:152`
 
-- [ ] **Menu Son : retour toujours vers Pause** — Le bouton "Retour" du menu Son navigue vers `showPauseMenu()` même si on y est arrivé depuis le menu principal.
+- [x] **Menu Son : retour toujours vers Pause** — Le bouton "Retour" du menu Son navigue vers `showPauseMenu()` même si on y est arrivé depuis le menu principal.
   - Fichiers : `src/ui.js:228-230`
 
 - [ ] **Son : variables sans effet** — `soundEnabled` et `musicEnabled` sont toggles dans le menu, mais ne sont ni exportées ni connectées à un système audio. Le menu Son est un placebo.
   - Fichiers : `src/ui.js:204-233`
 
-- [ ] **`getSellPriceMultiplier` ignore le type de ressource** — La fonction reçoit un paramètre `resourceType` mais ne l'utilise jamais. Soit le paramètre est inutile, soit c'est un oubli.
+- [x] **`getSellPriceMultiplier` ignore le type de ressource** — La fonction reçoit un paramètre `resourceType` mais ne l'utilise jamais. Soit le paramètre est inutile, soit c'est un oubli.
   - Fichiers : `src/buildings.js:184-194`
 
-- [ ] **Shadow map très large** — La shadow map couvre 500×500 unités en 2048×2048 → résolution d'ombre très basse (~0.24 unité/pixel). Un shadow map cascadé ou ciblé autour du joueur donnerait des ombres nettes.
+- [x] **Shadow map très large** — La shadow map couvre 500×500 unités en 2048×2048 → résolution d'ombre très basse (~0.24 unité/pixel). Un shadow map cascadé ou ciblé autour du joueur donnerait des ombres nettes.
   - Fichiers : `src/world.js:289-299`
 
 - [ ] **Marqueurs route : ~80 petits meshes** — Les lignes de route et marqueurs sont des `PlaneGeometry` individuels. Regrouper en un seul `BufferGeometry` ou une texture peinte.
   - Fichiers : `src/world.js:392-440`
 
-- [ ] **Pas de sauvegarde auto périodique** — La sauvegarde ne se fait que lors d'une collecte, d'une vente, ou quand l'onglet perd le focus. Si le navigateur crash entre deux actions, la progression est perdue.
+- [x] **Pas de sauvegarde auto périodique** — La sauvegarde ne se fait que lors d'une collecte, d'une vente, ou quand l'onglet perd le focus. Si le navigateur crash entre deux actions, la progression est perdue.
 
 - [ ] **Pas de tutoriel / onboarding** — Un nouveau joueur ne sait pas quoi faire. Aucune indication sur les mécaniques de base.
 
 - [ ] **Pas de minimap / boussole** — Sur une carte de 800×800, il est facile de se perdre. Pas d'indication de direction vers les points de vente ou chantiers.
 
-- [ ] **Détection mobile fragile** — La regex user-agent est incomplète (iPadOS Safari se présente en desktop). Le fallback `maxTouchPoints` est approximatif.
+- [x] **Détection mobile fragile** — La regex user-agent est incomplète (iPadOS Safari se présente en desktop). Le fallback `maxTouchPoints` est approximatif.
   - Fichiers : `src/ui.js:14-15`
 
-- [ ] **`checkSellPointProximity()` recalcule `getSellPoints()` chaque frame** — Micro-optimisation possible : un seul sell point statique, pas besoin de boucle.
+- [x] **`checkSellPointProximity()` recalcule `getSellPoints()` chaque frame** — Micro-optimisation possible : un seul sell point statique, pas besoin de boucle.
   - Fichiers : `src/main.js:112-126`
 
 ---

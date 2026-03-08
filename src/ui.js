@@ -12,6 +12,7 @@ let controls = null
 
 export function initUI(options) {
   isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile/i.test(navigator.userAgent)
+    || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent)) // iPadOS
     || (navigator.maxTouchPoints > 0 && window.innerWidth < 1024)
   onStartGame = options.onStartGame
   onResumeGame = options.onResumeGame
@@ -149,11 +150,11 @@ export function showMainMenu() {
   })
 
   addMenuButton(btnContainer, t('sound'), () => {
-    showSoundMenu()
+    showSoundMenu('main')
   })
 
   addMenuButton(btnContainer, t('language'), () => {
-    showLanguageMenu()
+    showLanguageMenu('main')
   })
 
   addMenuButton(btnContainer, t('reset'), () => {
@@ -207,7 +208,7 @@ export function showPauseMenu() {
 let soundEnabled = true
 let musicEnabled = true
 
-function showSoundMenu() {
+function showSoundMenu(parentMenu = 'pause') {
   hideAllOverlays()
   const overlay = createOverlay('sound-menu')
   const title = document.createElement('h1')
@@ -220,23 +221,24 @@ function showSoundMenu() {
 
   addMenuButton(btnContainer, soundEnabled ? t('sfxOn') : t('sfxOff'), () => {
     soundEnabled = !soundEnabled
-    showSoundMenu()
+    showSoundMenu(parentMenu)
   })
 
   addMenuButton(btnContainer, musicEnabled ? t('musicOn') : t('musicOff'), () => {
     musicEnabled = !musicEnabled
-    showSoundMenu()
+    showSoundMenu(parentMenu)
   })
 
   addMenuButton(btnContainer, t('back'), () => {
-    showPauseMenu()
+    if (parentMenu === 'main') showMainMenu()
+    else showPauseMenu()
   })
 
   overlay.appendChild(btnContainer)
 }
 
 // ─── Language Menu ───────────────────────────────
-function showLanguageMenu() {
+function showLanguageMenu(parentMenu = 'pause') {
   hideAllOverlays()
   const overlay = createOverlay('lang-menu')
   const title = document.createElement('h1')
@@ -255,12 +257,13 @@ function showLanguageMenu() {
     const current = getLanguage() === lang ? ' *' : ''
     addMenuButton(btnContainer, `${label}${current}`, () => {
       setLanguage(lang)
-      showLanguageMenu()
+      showLanguageMenu(parentMenu)
     })
   })
 
   addMenuButton(btnContainer, t('back'), () => {
-    showPauseMenu()
+    if (parentMenu === 'main') showMainMenu()
+    else showPauseMenu()
   })
 
   overlay.appendChild(btnContainer)
@@ -344,6 +347,16 @@ function showChangelog() {
 
 function getChangelogHTML() {
   return `
+    <div class="changelog-entry">
+      <h3>v0.9.1 <span class="changelog-date">2026-03-08</span></h3>
+      <ul>
+        <li>Langue persistee (survit au rechargement)</li>
+        <li>Sauvegarde automatique toutes les 30 secondes</li>
+        <li>Fix: retour menu Son/Langue vers le bon parent</li>
+        <li>Fix: detection iPadOS</li>
+        <li>Ombres plus nettes (shadow map optimisee)</li>
+      </ul>
+    </div>
     <div class="changelog-entry">
       <h3>v0.9.0 <span class="changelog-date">2026-03-07</span></h3>
       <ul>

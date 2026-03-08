@@ -3,6 +3,21 @@
 Toutes les modifications notables du projet sont documentées ici.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 
+## [0.9.1] - 2026-03-08
+
+### Corrigé
+- Menu Son/Langue : le bouton Retour revient au bon menu parent (principal ou pause)
+- getSellPriceMultiplier : suppression du parametre inutilise
+- Detection mobile : support iPadOS (Safari se presente en desktop)
+
+### Modifié
+- Shadow map reduite (250→120) pour des ombres plus nettes
+- checkSellPointProximity : cache des sell points et suppression du sqrt
+
+### Ajouté
+- Langue persistee dans localStorage (survit au rechargement)
+- Sauvegarde automatique toutes les 30 secondes
+
 ## [0.9.0] - 2026-03-07
 
 ### Modifié

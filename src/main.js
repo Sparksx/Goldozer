@@ -170,17 +170,18 @@ if (savedData) {
 
 // ─── Sell Point Proximity ────────────────────────
 const SELL_RADIUS = 12
+const SELL_RADIUS_SQ = SELL_RADIUS * SELL_RADIUS
+const cachedSellPoints = getSellPoints()
 
 function checkSellPointProximity() {
   if (!bulldozer) return false
   const bx = bulldozer.mesh.position.x
   const bz = bulldozer.mesh.position.z
-  const sellPoints = getSellPoints()
 
-  for (const sp of sellPoints) {
+  for (const sp of cachedSellPoints) {
     const dx = sp.x - bx
     const dz = sp.z - bz
-    if (Math.sqrt(dx * dx + dz * dz) < SELL_RADIUS) {
+    if (dx * dx + dz * dz < SELL_RADIUS_SQ) {
       return true
     }
   }
@@ -353,7 +354,23 @@ function animate() {
   state.playerPos.z = bulldozer.mesh.position.z
   state.playerRot = bulldozer.rotation
 
+  autoSave(delta)
+
   renderer.render(scene, camera)
+}
+
+// Auto-save every 30 seconds
+let autoSaveTimer = 0
+function autoSave(delta) {
+  autoSaveTimer += delta
+  if (autoSaveTimer >= 30) {
+    autoSaveTimer = 0
+    if (bulldozer && state) {
+      state.playerPos = { x: bulldozer.mesh.position.x, z: bulldozer.mesh.position.z }
+      state.playerRot = bulldozer.rotation
+      persistState(state)
+    }
+  }
 }
 
 // Save position on visibility change

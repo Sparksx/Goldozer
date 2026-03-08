@@ -76,7 +76,7 @@ export function sellResources(state) {
   for (const [type, count] of Object.entries(state.bucket)) {
     if (count <= 0) continue
     const baseValue = getResourceValue(type)
-    const multiplier = getSellPriceMultiplier(type)
+    const multiplier = getSellPriceMultiplier()
     earnings += Math.floor(count * baseValue * BASE_PRICE_PER_UNIT * multiplier)
   }
 

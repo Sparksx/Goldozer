@@ -330,11 +330,11 @@ export function createWorld(scene) {
   dirLight.shadow.mapSize.width = 2048
   dirLight.shadow.mapSize.height = 2048
   dirLight.shadow.camera.near = 0.5
-  dirLight.shadow.camera.far = 500
-  dirLight.shadow.camera.left = -250
-  dirLight.shadow.camera.right = 250
-  dirLight.shadow.camera.top = 250
-  dirLight.shadow.camera.bottom = -250
+  dirLight.shadow.camera.far = 400
+  dirLight.shadow.camera.left = -120
+  dirLight.shadow.camera.right = 120
+  dirLight.shadow.camera.top = 120
+  dirLight.shadow.camera.bottom = -120
   scene.add(dirLight)
 
   // Sky

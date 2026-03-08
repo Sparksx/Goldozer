@@ -181,7 +181,7 @@ export function getBuildingSaveData() {
 
 // ─── Building Effects (used by economy.js) ──────────
 
-export function getSellPriceMultiplier(resourceType) {
+export function getSellPriceMultiplier() {
   if (!buildingsState) return 1
   let mult = 1
   for (const b of buildingsState) {
